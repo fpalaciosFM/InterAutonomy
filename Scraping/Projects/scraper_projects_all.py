@@ -3,6 +3,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import os
+import base64
 from urllib.parse import unquote
 
 # --- CONFIGURACIÓN ---
@@ -43,11 +44,36 @@ def clean_html_professional(container):
     return container.decode_contents().strip()
 
 
+def extract_elementor_action_url(href):
+    """
+    Decodifica la URL de un video incrustada en una acción de Lightbox de Elementor.
+    El formato suele ser: #elementor-action:action=lightbox&settings=BASE64_JSON
+    """
+    if not href or "elementor-action" not in href:
+        return ""
+    try:
+        decoded_href = unquote(href)
+        # Buscamos la parte de 'settings=' seguida del código Base64
+        match = re.search(r"settings=([A-Za-z0-9+/=]+)", decoded_href)
+        if match:
+            b64_str = match.group(1)
+            # Añadir padding si es necesario para decodificación correcta
+            missing_padding = len(b64_str) % 4
+            if missing_padding:
+                b64_str += "=" * (4 - missing_padding)
+
+            json_str = base64.b64decode(b64_str).decode("utf-8")
+            data = json.loads(json_str)
+            # Limpiamos escapes de barras laterales si existen
+            return data.get("video_url", "").replace("\\/", "/")
+    except Exception:
+        pass
+    return ""
+
+
 def fetch_project_full_info(url, lang_code):
     try:
-        # 1. Ajuste de idioma en la URL
         current_url = re.sub(r"/(es|en|zh|fr|it)/", f"/{lang_code}/", url)
-
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
@@ -55,10 +81,9 @@ def fetch_project_full_info(url, lang_code):
         response = requests.get(current_url, headers=headers, timeout=20)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
-
         slug = normalize_slug(url)
 
-        # --- Extracción de Metadatos (h6) ---
+        # --- Extracción de Metadatos (H6) ---
         external_link_url = ""
         external_link_text = ""
         location_map_url = ""
@@ -67,10 +92,7 @@ def fetch_project_full_info(url, lang_code):
 
         h6_container = soup.select_one("h6")
         if h6_container:
-            # Buscamos los párrafos directos dentro del h6
             p_tags = h6_container.find_all("p", recursive=False)
-
-            # 1. Link Externo (P1:nth-child(1))
             if len(p_tags) >= 1:
                 a_ext = p_tags[0].find("a")
                 if a_ext:
@@ -81,8 +103,6 @@ def fetch_project_full_info(url, lang_code):
                         if span
                         else a_ext.get_text(strip=True)
                     )
-
-            # 2. Ubicación / Maps (P2:nth-child(2))
             if len(p_tags) >= 2:
                 a_loc = p_tags[1].find("a")
                 if a_loc:
@@ -93,10 +113,25 @@ def fetch_project_full_info(url, lang_code):
                         if span
                         else a_loc.get_text(strip=True)
                     )
-
-            # 4. Descripción Corta (P4:nth-child(4)) - Lógica previa mantenida
             if len(p_tags) >= 4:
                 short_description = clean_html_professional(p_tags[3])
+
+        # --- Extracción de Videos ---
+        # 1. Inglés: Iframe directo (limpiamos el embed para tener la URL base)
+        iframe_en = soup.select_one(".elementor-element-4ba088e iframe")
+        video_en = ""
+        if iframe_en:
+            video_en = iframe_en.get("data-lazy-load") or iframe_en.get("src") or ""
+            if "youtube.com/embed/" in video_en:
+                video_en = video_en.split("?")[0].replace("/embed/", "/watch?v=")
+
+        # 2. Español: Botón con Lightbox
+        btn_es = soup.select_one(".elementor-element-716dcbf a")
+        video_es = extract_elementor_action_url(btn_es.get("href")) if btn_es else ""
+
+        # 3. Mandarín: Botón con Lightbox
+        btn_zh = soup.select_one(".elementor-element-d169596 a")
+        video_zh = extract_elementor_action_url(btn_zh.get("href")) if btn_zh else ""
 
         # --- Textos Principales ---
         title_tag = soup.select_one(".elementor-widget-jet-listing-dynamic-field h1")
@@ -110,12 +145,10 @@ def fetch_project_full_info(url, lang_code):
         # --- Bloques de Párrafos y Estrategias ---
         paragraphs = []
         blocks = soup.select(".elementor-element-2327781")
-
         for idx, block in enumerate(blocks, 1):
             text_p = block.select_one("div.jet-listing-dynamic-field__content")
             if not text_p or not text_p.get_text(strip=True):
                 continue
-
             strategies = []
             for a in block.select('a[href*="/strategy/"]'):
                 href = a.get("href", "")
@@ -133,7 +166,7 @@ def fetch_project_full_info(url, lang_code):
                 }
             )
 
-        # --- Galería de Imágenes ---
+        # --- Galería ---
         gallery_images = []
         gallery_items = soup.select(".elementor-widget-gallery a")
         for a in gallery_items:
@@ -150,6 +183,7 @@ def fetch_project_full_info(url, lang_code):
             "base": {
                 "external_link": external_link_url,
                 "location_map": location_map_url,
+                "videos": {"en": video_en, "es": video_es, "zh": video_zh},
                 "paragraphs_map": [
                     {"id": p["id"], "strategies": p["linked_strategies"]}
                     for p in paragraphs
@@ -199,9 +233,7 @@ def main():
         print(f"📦 Proyecto: {project_slug}")
 
         img_node = item.select_one(".elementor-widget-image img")
-        img_url = img_node.get("src") if img_node else None
-        if img_node and not img_url:
-            img_url = img_node.get("data-src")
+        img_url = img_node.get("src") or img_node.get("data-src") if img_node else None
 
         for lang in IDIOMAS:
             print(f"   -> Extrayendo idioma: {lang}")
@@ -217,7 +249,6 @@ def main():
                     )
                 translations[lang].append({"slug": project_slug, **data["translation"]})
 
-    # Guardado de archivos
     with open("projects_base.json", "w", encoding="utf-8") as f:
         json.dump(base_catalog, f, indent=4, ensure_ascii=False)
 
