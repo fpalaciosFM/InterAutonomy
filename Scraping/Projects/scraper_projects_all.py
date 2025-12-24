@@ -3,28 +3,32 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import os
+from urllib.parse import unquote
 
 # --- CONFIGURACIÓN ---
 ARCHIVO_CATALOGO = "Projects - Interautonomy.html"
-SALIDA_JSON = "proyectos_detallados_3.json"
-LIMIT_TEST = 3
-
-# --- FUNCIONES DE APOYO (Tu lógica original adaptada) ---
+IDIOMAS = ["en", "es", "zh"]
+LIMIT_TEST = 2  # Cambiar a None para procesar todo el catálogo
 
 
-def extract_strategy_slug(url):
-    match = re.search(r"/strategy/([^/]+)/", url)
-    return match.group(1) if match else None
-
-
-def extract_project_slug(url):
-    # Extrae el slug del proyecto de la URL: /project/nombre-proyecto/
+def normalize_slug(url):
+    """Limpia el slug del proyecto para que sea una ID única y limpia."""
     match = re.search(r"/project/([^/]+)/?", url)
-    return match.group(1).rstrip("/") if match else "sin-slug"
+    if match:
+        raw_slug = unquote(match.group(1).rstrip("/"))
+        clean_slug = (
+            raw_slug.replace("·", "")
+            .replace("  ", " ")
+            .strip()
+            .lower()
+            .replace(" ", "-")
+        )
+        return re.sub(r"-+", "-", clean_slug)
+    return "sin-slug"
 
 
 def clean_html_professional(container):
-    """Limpia el contenido interno preservando negritas y colores (Tu lógica)."""
+    """Limpia el HTML preservando solo formatos esenciales."""
     if not container:
         return ""
     for tag in container.find_all(True):
@@ -39,126 +43,182 @@ def clean_html_professional(container):
     return container.decode_contents().strip()
 
 
-# --- NÚCLEO DE EXTRACCIÓN ---
-
-
-def fetch_project_details_from_url(url):
-    """Obtiene y procesa el detalle de un proyecto desde su URL viva."""
+def fetch_project_full_info(url, lang_code):
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=15)
+        # 1. Ajuste de idioma en la URL (soporta es, en, zh y otros)
+        current_url = re.sub(r"/(es|en|zh|fr|it)/", f"/{lang_code}/", url)
+
+        # User-Agent completo para asegurar que el servidor entregue el HTML correcto
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+
+        response = requests.get(current_url, headers=headers, timeout=20)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
 
-        project_slug = extract_project_slug(url)
+        slug = normalize_slug(url)
 
-        # 1. METADATOS
+        # --- Extracción de Metadatos Base ---
+        external_link = ""
+        location_map = ""
+        links_h6 = soup.select("h6 p a")
+        for a in links_h6:
+            href = a.get("href", "")
+            if "maps.google" in href or "goo.gl/maps" in href:
+                location_map = href
+            elif "interautonomy.org" not in href:
+                external_link = href
+
+        # --- Textos Principales ---
         title_tag = soup.select_one(".elementor-widget-jet-listing-dynamic-field h1")
         title = title_tag.get_text(strip=True) if title_tag else ""
 
         intro_tag = soup.select_one(
             ".elementor-element-5d39f2b .elementor-widget-container"
         )
-        introduction = intro_tag.get_text(" ", strip=True) if intro_tag else ""
-        introduction = re.sub(r"^info\s+\d{4}", "", introduction).strip()
+        introduction = clean_html_professional(intro_tag) if intro_tag else ""
+        # introduction = (
+        #     re.sub(r"^info\s+\d{4}", "", intro_tag.get_text(" ", strip=True)).strip()
+        #     if intro_tag
+        #     else ""
+        # )
 
-        # Descripción corta (4to párrafo en h6)
-        short_description = ""
+        short_desc = ""
         desc_container = soup.select_one("h6")
         if desc_container:
-            paragraphs_in_h6 = desc_container.find_all("p")
-            if len(paragraphs_in_h6) >= 4:
-                short_description = paragraphs_in_h6[3].get_text(strip=True)
+            p_tags = desc_container.find_all("p")
+            if len(p_tags) >= 4:
+                short_desc = clean_html_professional(p_tags[3])
 
-        # 2. ENLACES Y UBICACIÓN
-        external_link = ""
-        location_map = ""
-        links = soup.select("h6 p a")
-        for a in links:
-            href = a["href"]
-            if "maps.google" in href or "goo.gl/maps" in href:
-                location_map = href
-            elif "interautonomy.org" not in href:
-                if not external_link:
-                    external_link = href
-
-        # 3. PÁRRAFOS Y ESTRATEGIAS
+        # --- Bloques de Párrafos y Estrategias ---
         paragraphs = []
-        blocks = soup.select(".jet-listing-grid__item")
+        blocks = soup.select(".elementor-element-2327781")
 
-        idx = 1
-        for block in blocks:
-            text_p = block.select_one("p.translation-block")
-            if not text_p:
+        for idx, block in enumerate(blocks, 1):
+            # MEJORA: Intentamos con la clase de traducción,
+            # de lo contrario buscamos el párrafo dentro del contenedor de contenido de Elementor
+            text_p = block.select_one("div.jet-listing-dynamic-field__content")
+
+            # Si aún así no hay nada o el texto está vacío, ignoramos este bloque
+            if not text_p or not text_p.get_text(strip=True):
                 continue
 
-            linked_strategies = []
-            strategy_links = block.select('a[href*="/strategy/"]')
-            for a in strategy_links:
-                slug_strat = extract_strategy_slug(a["href"])
-                if slug_strat and slug_strat not in linked_strategies:
-                    linked_strategies.append(slug_strat)
+            # Extraer estrategias con Regex flexible (soporta con o sin '/' al final)
+            strategies = []
+            for a in block.select('a[href*="/strategy/"]'):
+                href = a.get("href", "")
+                s_match = re.search(r"/strategy/([^/]+)/?", href)
+                if s_match:
+                    strat_slug = s_match.group(1).rstrip("/")
+                    if strat_slug not in strategies:
+                        strategies.append(strat_slug)
 
             paragraphs.append(
                 {
-                    "id": f"{project_slug}-p{idx}",  # ID Único para traducción
-                    "order_index": idx,
+                    "id": f"{slug}-p{idx}",
                     "body_html": clean_html_professional(text_p),
-                    "linked_strategies": linked_strategies,
+                    "linked_strategies": list(set(strategies)),
                 }
             )
-            idx += 1
+
+        gallery_images = []
+
+        # Extraemos las URLs de las imágenes (Estructural)
+        # Buscamos todos los enlaces 'a' dentro del widget de galería
+        gallery_items = soup.select(".elementor-widget-gallery a")
+        for a in gallery_items:
+            img_href = a.get("href")
+            # Verificamos que sea una imagen (por extensión) para evitar otros links
+            if img_href and any(
+                img_href.lower().endswith(ext)
+                for ext in [".jpg", ".jpeg", ".png", ".webp"]
+            ):
+                if img_href not in gallery_images:
+                    gallery_images.append(img_href)
 
         return {
-            "title": title,
-            "slug": project_slug,
-            "introduction": introduction,
-            "short_description": short_description,
-            "external_link": external_link,
-            "location_map": location_map,
-            "paragraphs": paragraphs,
+            "slug": slug,
+            "base": {
+                "external_link": external_link,
+                "location_map": location_map,
+                "paragraphs_map": [
+                    {"id": p["id"], "strategies": p["linked_strategies"]}
+                    for p in paragraphs
+                    if len(p["linked_strategies"]) > 0
+                ],
+                "gallery_images": gallery_images,
+            },
+            "translation": {
+                "title": title,
+                "introduction": introduction,
+                "short_description": short_desc,
+                "paragraphs": [
+                    {"id": p["id"], "body_html": p["body_html"]}
+                    for p in paragraphs
+                    if len(p["linked_strategies"]) > 0
+                ],
+            },
         }
     except Exception as e:
-        print(f"      ! Error en {url}: {e}")
+        print(f"Error en {lang_code} - {url}: {e}")
         return None
 
 
-# --- ITERADOR PRINCIPAL ---
-
-
-def procesar_catalogo():
+def main():
     if not os.path.exists(ARCHIVO_CATALOGO):
-        print(f"Error: No existe {ARCHIVO_CATALOGO}")
+        print(f"❌ No se encontró el archivo: {ARCHIVO_CATALOGO}")
         return
 
     with open(ARCHIVO_CATALOGO, "r", encoding="utf-8") as f:
         soup_catalog = BeautifulSoup(f.read(), "html.parser")
 
-    # Selector de tarjetas en el catálogo local
-    items = soup_catalog.select(".jet-listing-grid__item")
-    print(f"Iniciando extracción de los primeros {LIMIT_TEST} proyectos...\n")
+    items = soup_catalog.select(".jet-listing-grid__item")[:LIMIT_TEST]
 
-    biblioteca_proyectos = []
+    print(f"se encontraron {len(items)}")
 
-    for item in items[:LIMIT_TEST]:
-        # Buscamos la liga de la tarjeta
-        link_tag = item.select_one("a")
-        if not link_tag or not link_tag.get("href"):
+    base_catalog = []
+    translations = {lang: [] for lang in IDIOMAS}
+
+    for item in items:
+        url_node = item.select_one("a")
+        if not url_node:
             continue
 
-        url_proyecto = link_tag["href"]
-        print(f"-> Procesando: {url_proyecto}")
+        url_base = url_node["href"]
+        project_slug = normalize_slug(url_base)
+        print(f"📦 Proyecto: {project_slug}")
 
-        datos = fetch_project_details_from_url(url_proyecto)
-        if datos:
-            biblioteca_proyectos.append(datos)
+        img_node = item.select_one(".elementor-widget-image img")
+        img_url = img_node.get("src") if img_node else None
 
-    # Guardar resultado final
-    with open(SALIDA_JSON, "w", encoding="utf-8") as f:
-        json.dump(biblioteca_proyectos, f, indent=4, ensure_ascii=False)
+        if img_node and not img_url:
+            img_url = img_node.get("data-src")
 
-    print(f"\n✨ ¡Éxito! Archivo generado: {SALIDA_JSON}")
+        for lang in IDIOMAS:
+            print(f"   -> Extrayendo idioma: {lang}")
+            data = fetch_project_full_info(url_base, lang)
+            if data:
+                if not any(b["slug"] == project_slug for b in base_catalog):
+                    base_catalog.append(
+                        {
+                            "slug": project_slug,
+                            "thumbnail": img_url,  # <--- Nueva clave
+                            **data["base"],
+                        }
+                    )
+                translations[lang].append({"slug": project_slug, **data["translation"]})
+
+    # Guardado de archivos
+    with open("projects_base.json", "w", encoding="utf-8") as f:
+        json.dump(base_catalog, f, indent=4, ensure_ascii=False)
+
+    for lang in IDIOMAS:
+        with open(f"projects_data_{lang}.json", "w", encoding="utf-8") as f:
+            json.dump(translations[lang], f, indent=4, ensure_ascii=False)
+
+    print("\n✨ ¡Listo! Revisa 'projects_base.json' para ver las estrategias.")
 
 
 if __name__ == "__main__":
-    procesar_catalogo()
+    main()
