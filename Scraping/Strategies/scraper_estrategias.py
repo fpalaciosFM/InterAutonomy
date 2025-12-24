@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 # --- CONFIGURACIÓN ---
 ARCHIVO_CATALOGO_ESTRATEGIAS = "Strategies - Interautonomy.html"
 IDIOMAS = ["es", "en", "zh"]
-LIMIT_TEST = 3  # Cambiar a None para procesar todo el catálogo
+LIMIT_TEST = 1  # Cambiar a None para procesar todo el catálogo
 
 
 def extract_slug(url):
@@ -28,13 +28,13 @@ def clean_html_professional(container):
         element.decompose()
 
     for tag in container.find_all(True):
-        # Limpieza de clases: solo dejamos las que empiezan con 'has-' (de Gutenberg/Elementor)
+        # Limpieza de clases
         if "class" in tag.attrs:
             tag.attrs["class"] = [c for c in tag.attrs["class"] if c.startswith("has-")]
             if not tag.attrs["class"]:
                 del tag.attrs["class"]
 
-        # Limpieza de otros atributos excepto los esenciales
+        # Limpieza de otros atributos
         attrs = dict(tag.attrs)
         for attr in attrs:
             if attr == "style":
@@ -42,7 +42,8 @@ def clean_html_professional(container):
             elif attr not in ["src", "href", "alt"]:
                 del tag.attrs[attr]
 
-    return str(container).strip()
+    # CAMBIO: Usamos decode_contents() para extraer solo el HTML interior
+    return container.decode_contents().strip()
 
 
 def fetch_strategy_details(slug, lang):
@@ -109,7 +110,7 @@ def fetch_strategy_details(slug, lang):
                         elif attr not in ["src", "href", "alt"]:
                             del tag.attrs[attr]
 
-                description_html = str(content_container)
+                description_html = clean_html_professional(content_container)
 
         return {
             "base": {
