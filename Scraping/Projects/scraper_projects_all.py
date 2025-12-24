@@ -45,10 +45,9 @@ def clean_html_professional(container):
 
 def fetch_project_full_info(url, lang_code):
     try:
-        # 1. Ajuste de idioma en la URL (soporta es, en, zh y otros)
+        # 1. Ajuste de idioma en la URL
         current_url = re.sub(r"/(es|en|zh|fr|it)/", f"/{lang_code}/", url)
 
-        # User-Agent completo para asegurar que el servidor entregue el HTML correcto
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
@@ -59,16 +58,45 @@ def fetch_project_full_info(url, lang_code):
 
         slug = normalize_slug(url)
 
-        # --- Extracción de Metadatos Base ---
-        external_link = ""
-        location_map = ""
-        links_h6 = soup.select("h6 p a")
-        for a in links_h6:
-            href = a.get("href", "")
-            if "maps.google" in href or "goo.gl/maps" in href:
-                location_map = href
-            elif "interautonomy.org" not in href:
-                external_link = href
+        # --- Extracción de Metadatos (h6) ---
+        external_link_url = ""
+        external_link_text = ""
+        location_map_url = ""
+        location_map_text = ""
+        short_description = ""
+
+        h6_container = soup.select_one("h6")
+        if h6_container:
+            # Buscamos los párrafos directos dentro del h6
+            p_tags = h6_container.find_all("p", recursive=False)
+
+            # 1. Link Externo (P1:nth-child(1))
+            if len(p_tags) >= 1:
+                a_ext = p_tags[0].find("a")
+                if a_ext:
+                    external_link_url = a_ext.get("href", "")
+                    span = a_ext.find("span")
+                    external_link_text = (
+                        span.get_text(strip=True)
+                        if span
+                        else a_ext.get_text(strip=True)
+                    )
+
+            # 2. Ubicación / Maps (P2:nth-child(2))
+            if len(p_tags) >= 2:
+                a_loc = p_tags[1].find("a")
+                if a_loc:
+                    location_map_url = a_loc.get("href", "")
+                    span = a_loc.find("span")
+                    location_map_text = (
+                        span.get_text(strip=True)
+                        if span
+                        else a_loc.get_text(strip=True)
+                    )
+
+            # 4. Descripción Corta (P4:nth-child(4)) - Lógica previa mantenida
+            if len(p_tags) >= 4:
+                short_description = clean_html_professional(p_tags[3])
 
         # --- Textos Principales ---
         title_tag = soup.select_one(".elementor-widget-jet-listing-dynamic-field h1")
@@ -78,33 +106,16 @@ def fetch_project_full_info(url, lang_code):
             ".elementor-element-5d39f2b .elementor-widget-container"
         )
         introduction = clean_html_professional(intro_tag) if intro_tag else ""
-        # introduction = (
-        #     re.sub(r"^info\s+\d{4}", "", intro_tag.get_text(" ", strip=True)).strip()
-        #     if intro_tag
-        #     else ""
-        # )
-
-        short_desc = ""
-        desc_container = soup.select_one("h6")
-        if desc_container:
-            p_tags = desc_container.find_all("p")
-            if len(p_tags) >= 4:
-                short_desc = clean_html_professional(p_tags[3])
 
         # --- Bloques de Párrafos y Estrategias ---
         paragraphs = []
         blocks = soup.select(".elementor-element-2327781")
 
         for idx, block in enumerate(blocks, 1):
-            # MEJORA: Intentamos con la clase de traducción,
-            # de lo contrario buscamos el párrafo dentro del contenedor de contenido de Elementor
             text_p = block.select_one("div.jet-listing-dynamic-field__content")
-
-            # Si aún así no hay nada o el texto está vacío, ignoramos este bloque
             if not text_p or not text_p.get_text(strip=True):
                 continue
 
-            # Extraer estrategias con Regex flexible (soporta con o sin '/' al final)
             strategies = []
             for a in block.select('a[href*="/strategy/"]'):
                 href = a.get("href", "")
@@ -122,14 +133,11 @@ def fetch_project_full_info(url, lang_code):
                 }
             )
 
+        # --- Galería de Imágenes ---
         gallery_images = []
-
-        # Extraemos las URLs de las imágenes (Estructural)
-        # Buscamos todos los enlaces 'a' dentro del widget de galería
         gallery_items = soup.select(".elementor-widget-gallery a")
         for a in gallery_items:
             img_href = a.get("href")
-            # Verificamos que sea una imagen (por extensión) para evitar otros links
             if img_href and any(
                 img_href.lower().endswith(ext)
                 for ext in [".jpg", ".jpeg", ".png", ".webp"]
@@ -140,8 +148,8 @@ def fetch_project_full_info(url, lang_code):
         return {
             "slug": slug,
             "base": {
-                "external_link": external_link,
-                "location_map": location_map,
+                "external_link": external_link_url,
+                "location_map": location_map_url,
                 "paragraphs_map": [
                     {"id": p["id"], "strategies": p["linked_strategies"]}
                     for p in paragraphs
@@ -152,7 +160,9 @@ def fetch_project_full_info(url, lang_code):
             "translation": {
                 "title": title,
                 "introduction": introduction,
-                "short_description": short_desc,
+                "short_description": short_description,
+                "external_link_text": external_link_text,
+                "location_map_text": location_map_text,
                 "paragraphs": [
                     {"id": p["id"], "body_html": p["body_html"]}
                     for p in paragraphs
@@ -174,8 +184,7 @@ def main():
         soup_catalog = BeautifulSoup(f.read(), "html.parser")
 
     items = soup_catalog.select(".jet-listing-grid__item")[:LIMIT_TEST]
-
-    print(f"se encontraron {len(items)}")
+    print(f"Se encontraron {len(items)} items en el catálogo.")
 
     base_catalog = []
     translations = {lang: [] for lang in IDIOMAS}
@@ -191,7 +200,6 @@ def main():
 
         img_node = item.select_one(".elementor-widget-image img")
         img_url = img_node.get("src") if img_node else None
-
         if img_node and not img_url:
             img_url = img_node.get("data-src")
 
@@ -203,7 +211,7 @@ def main():
                     base_catalog.append(
                         {
                             "slug": project_slug,
-                            "thumbnail": img_url,  # <--- Nueva clave
+                            "thumbnail": img_url,
                             **data["base"],
                         }
                     )
@@ -217,7 +225,7 @@ def main():
         with open(f"projects_data_{lang}.json", "w", encoding="utf-8") as f:
             json.dump(translations[lang], f, indent=4, ensure_ascii=False)
 
-    print("\n✨ ¡Listo! Revisa 'projects_base.json' para ver las estrategias.")
+    print("\n✨ ¡Listo! Revisa los archivos generados.")
 
 
 if __name__ == "__main__":
