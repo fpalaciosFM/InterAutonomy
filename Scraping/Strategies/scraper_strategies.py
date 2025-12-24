@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 # --- CONFIGURACIÓN ---
 ARCHIVO_CATALOGO_ESTRATEGIAS = "Strategies - Interautonomy.html"
 IDIOMAS = ["es", "en", "zh"]
-LIMIT_TEST = 1  # Cambiar a None para procesar todo el catálogo
+LIMIT_TEST = None  # Cambiar a None para procesar todo el catálogo
 
 
 def extract_slug(url):
@@ -42,13 +42,11 @@ def clean_html_professional(container):
             elif attr not in ["src", "href", "alt"]:
                 del tag.attrs[attr]
 
-    # CAMBIO: Usamos decode_contents() para extraer solo el HTML interior
     return container.decode_contents().strip()
 
 
 def fetch_strategy_details(slug, lang):
     """Descarga el detalle de la estrategia para un idioma específico."""
-    # Nota: Ajusta la estructura de la URL si el chino usa subdominio o subdirectorio diferente
     base_url = f"https://interautonomy.org/{lang}/strategy/{slug}/"
 
     try:
@@ -65,15 +63,13 @@ def fetch_strategy_details(slug, lang):
         title_node = soup.select_one("h1")
         title = title_node.get_text(strip=True) if title_node else ""
 
-        # 2. Imagen Hero
+        # 2. Imagen Hero (Mantenida según tu solicitud)
         hero_img = None
         hero_img_node = soup.find("meta", property="og:image")
         if hero_img_node:
-            hero_img = hero_img = hero_img_node["content"]
-            # hero_img = urljoin(base_url, hero_img)
+            hero_img = hero_img_node["content"]
 
         # 3. Contenido Principal
-        # Ajustamos el selector según el contenedor real de las estrategias
         research_section = soup.find("section", {"data-id": "9b86c65"}) or soup.find(
             "section", class_="elementor-element-9b86c65"
         )
@@ -84,13 +80,9 @@ def fetch_strategy_details(slug, lang):
                 "div", class_="elementor-widget-container"
             )
             if content_container:
-                # LIMPIEZA INTELIGENTE:
-                # Preservamos clases que empiecen con 'has-' (colores/tamaños de WP)
-                # y etiquetas de formato como strong, b, i, span.
                 for tag in content_container.find_all(True):
                     attrs = dict(tag.attrs)
                     for attr in attrs:
-                        # Mantenemos 'class' solo si tiene clases de formato de WordPress
                         if attr == "class":
                             new_classes = [
                                 c for c in tag.attrs["class"] if c.startswith("has-")
@@ -99,14 +91,12 @@ def fetch_strategy_details(slug, lang):
                                 tag.attrs["class"] = new_classes
                             else:
                                 del tag.attrs["class"]
-                        # Mantenemos 'style' solo si tiene color o font-size (opcional)
                         elif attr == "style":
                             if (
                                 "color" not in tag.attrs["style"]
                                 and "font-size" not in tag.attrs["style"]
                             ):
                                 del tag.attrs["style"]
-                        # Borramos todo lo demás que no sea src, href o alt
                         elif attr not in ["src", "href", "alt"]:
                             del tag.attrs[attr]
 
@@ -127,7 +117,7 @@ def fetch_strategy_details(slug, lang):
 
 
 def parse_local_catalog(file_path):
-    """Analiza el archivo HTML local para obtener la lista inicial de estrategias."""
+    """Analiza el archivo HTML local para obtener la lista inicial de estrategias y sus logos."""
     if not os.path.exists(file_path):
         return []
 
@@ -142,8 +132,23 @@ def parse_local_catalog(file_path):
         if link_tag:
             url = link_tag["href"]
             slug = extract_slug(url)
+
+            # --- NUEVA LÓGICA PARA EL LOGO ---
+            # Buscamos la imagen dentro del widget con la clase que nos pasaste (4611cd5)
+            logo_node = item.select_one(".elementor-element-4611cd5 img")
+            logo_url = None
+            if logo_node:
+                # Intentamos src normal o data-src por si hay lazy loading
+                logo_url = logo_node.get("src") or logo_node.get("data-src")
+
             if slug:
-                strategies.append({"slug": slug, "url": url})
+                strategies.append(
+                    {
+                        "slug": slug,
+                        "url": url,
+                        "logo_url": logo_url,  # Guardamos el logo para el JSON base
+                    }
+                )
     return strategies
 
 
@@ -159,6 +164,7 @@ def main():
 
     for entry in base_list:
         slug = entry["slug"]
+        logo_url = entry.get("logo_url")  # Recuperamos el logo extraído del catálogo
         print(f"\n🚀 Procesando estrategia: {slug}")
 
         for lang in IDIOMAS:
@@ -168,7 +174,10 @@ def main():
             if data:
                 # Guardar datos maestros (solo una vez por slug)
                 if not any(b["slug"] == slug for b in base_catalog):
-                    base_catalog.append({"slug": slug, **data["base"]})
+                    # Combinamos el logo (del catálogo) con la hero_image (del detalle)
+                    base_catalog.append(
+                        {"slug": slug, "logo_url": logo_url, **data["base"]}
+                    )
 
                 # Guardar traducción
                 translations[lang].append({"slug": slug, **data["translation"]})
@@ -178,7 +187,7 @@ def main():
     # --- GUARDADO DE ARCHIVOS ---
     with open("strategies_base.json", "w", encoding="utf-8") as f:
         json.dump(base_catalog, f, indent=4, ensure_ascii=False)
-    print("\n✅ Archivo 'strategies_base.json' generado.")
+    print("\n✅ Archivo 'strategies_base.json' generado con logos y hero images.")
 
     for lang in IDIOMAS:
         nombre_archivo = f"strategies_data_{lang}.json"

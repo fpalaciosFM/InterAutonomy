@@ -9,7 +9,7 @@ from urllib.parse import unquote
 # --- CONFIGURACIÓN ---
 ARCHIVO_CATALOGO = "Projects - Interautonomy.html"
 IDIOMAS = ["en", "es", "zh"]
-LIMIT_TEST = 2
+LIMIT_TEST = None  # Cambiar a None para procesar todo el catálogo
 
 
 def normalize_slug(url):
