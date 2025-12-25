@@ -1,14 +1,101 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
+/* Estilos personalizados */
+@layer components {
+  .section-container {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    container-type: inline-size;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80rem;
+  }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: white;
+  @media (min-width: 768px) {
+    .section-container {
+      padding-top: 8rem;
+      padding-bottom: 8rem;
+    }
+  }
+
+  .h1-bold {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  @media (min-width: 768px) {
+    .h1-bold {
+      font-size: 4.5rem;
+    }
+  }
+
+  .h2-bold {
+    font-size: 1.875rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .h2-bold {
+      font-size: 3rem;
+    }
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+    outline: none;
+    background-color: rgb(241 245 249);
+    border: 1px solid transparent;
+  }
+
+  .input-field:focus {
+    border-color: rgb(59 130 246);
+  }
+
+  .dark .input-field {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .input-field::placeholder {
+    color: rgb(148 163 184);
+  }
+
+  .dark .input-field::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-primary {
+    padding: 1rem 2rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 1.125rem;
+    transition: all 0.2s;
+    background-color: rgb(15 23 42);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .btn-primary:hover {
+    background-color: rgb(37 99 235);
+  }
+
+  .dark .btn-primary {
+    background-color: white;
+    color: black;
+  }
+
+  .dark .btn-primary:hover {
+    background-color: rgb(219 234 254);
+  }
 }
