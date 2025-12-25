@@ -19,9 +19,16 @@ El proyecto está organizado bajo una estructura de **Monorepo**, dividida en tr
 * **Seguridad:** Gestión de secretos mediante variables de entorno (`.env`) y roles de acceso.
 
 ### 3. Portal Web (`/portal-interautonomy`)
-* **Framework:** **Next.js 15** + **React 19** (Uso de Server Components y Actions).
-* **Estilos:** Tailwind CSS + shadcn/ui.
-* **Experiencia de Usuario:** Interfaz optimizada para la lectura técnica y el aprendizaje interactivo de estrategias sociales.
+* **Framework:** **Next.js 16.1** + **React 19** (Uso de Server Components y Turbopack).
+* **Estilos:** Tailwind CSS v4 + Lucide React.
+* **Características:**
+  - ✨ Modo oscuro/claro con toggle manual y detección automática
+  - 🌍 Sistema de traducción multi-idioma (EN/ES/ZH)
+  - 🎨 Navbar completo con logo oficial y navegación responsive
+  - ⚡ Componentes modulares con documentación JSDoc
+  - 🎯 Arquitectura lista para escalabilidad
+  - 📱 Totalmente responsive con menú hamburguesa
+  - 🔧 Sin errores de lint ni warnings de hidratación
 
 ---
 
@@ -29,8 +36,8 @@ El proyecto está organizado bajo una estructura de **Monorepo**, dividida en tr
 
 | Capa           | Tecnología                                    |
 | :------------- | :-------------------------------------------- |
-| **Frontend**   | React 19, Next.js 15 (App Router), TypeScript |
-| **Estilos**    | Tailwind CSS, Lucide React, shadcn/ui         |
+| **Frontend**   | React 19, Next.js 16.1 (App Router), TypeScript |
+| **Estilos**    | Tailwind CSS v4, Lucide React                 |
 | **Backend/DB** | Supabase (PostgreSQL), Edge Functions         |
 | **Data Eng.**  | Python 3.x, BeautifulSoup, Dotenv             |
 | **Despliegue** | Vercel (Frontend), Supabase Cloud (Data)      |
@@ -71,6 +78,46 @@ El proyecto está organizado bajo una estructura de **Monorepo**, dividida en tr
     npm install
     npm run dev
     ```
+    La aplicación estará disponible en `http://localhost:3000`
+
+### Estructura del Portal Web
+
+```text
+portal-interautonomy/
+├── app/
+│   ├── globals.css      # Estilos globales con Tailwind v4
+│   ├── layout.tsx       # Layout principal con fuentes Google
+│   └── page.tsx         # Página de inicio
+├── components/
+│   ├── Navbar.tsx       # Barra de navegación con selector de idioma
+│   ├── Hero.tsx         # Sección hero con call-to-action
+│   └── ContactForm.tsx  # Formulario de contacto
+└── public/              # Recursos estáticos
+```
+
+---
+
+## 📝 Componentes Actuales
+
+### `<Navbar />`
+Barra de navegación fija con:
+- Logo animado
+- Búsqueda
+- Selector de idioma (EN/ES/ZH)
+- Soporte para modo oscuro
+
+### `<Hero />`
+Sección principal con:
+- Imagen de fondo optimizada con next/image
+- Gradiente adaptable al tema
+- Call-to-action interactivo
+
+### `<ContactForm />`
+Formulario de contacto con:
+- Campos validados
+- Diseño responsive
+- Integración con modo oscuro
+
 ---
 
 ## 👤 Autor

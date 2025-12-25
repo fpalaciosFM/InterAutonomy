@@ -33,25 +33,39 @@ portal-interautonomy/
 
 ### `<Navbar />`
 Fixed navigation bar featuring:
-- Animated logo
-- Search functionality
-- Language selector (EN/ES/ZH)
-- Responsive mobile menu
-- Dark/light mode support
+- **Official branding**: InterAutonomy logo from official website
+- **Theme toggle**: Dark/light mode switcher with localStorage persistence
+- **Language selector**: Multi-language support (EN/ES/ZH) with dropdown
+- **Responsive menu**: Hamburger menu for mobile devices
+- **Search functionality**: Ready for implementation
+- **Dynamic navigation**: 7 main sections ready for future pages
+- **Accessibility**: ARIA labels and semantic HTML
+
+**Technical details:**
+- Uses `useLayoutEffect` to prevent flash of unstyled content
+- Theme preference persists across sessions
+- Detects system color scheme preference on first visit
 
 ### `<Hero />`
 Main hero section with:
-- Optimized background image (next/image)
-- Gradient overlay (theme-aware)
-- Interactive call-to-action button
-- Responsive typography
+- **Optimized image**: Using next/image with Unsplash background
+- **Gradient overlay**: Theme-aware gradient for better readability
+- **Interactive CTA**: Call-to-action button with hover animations
+- **Responsive typography**: Scales from mobile to desktop
+- **85vh height**: Ensures prominent above-the-fold presence
 
 ### `<ContactForm />`
 Contact form with:
-- Name, email, and message fields
-- Consistent styling with design system
-- Dark mode integration
-- Accessible form elements
+- **Validated fields**: Name, email, and message inputs
+- **Responsive layout**: Two-column design on desktop, stacked on mobile
+- **Theme integration**: Full dark mode support
+- **Accessible elements**: Semantic form structure
+- **Visual feedback**: Focus states and hover effects
+
+**TODO:**
+- Connect to backend API or email service
+- Add client-side validation
+- Implement success/error toast notifications
 
 ## 🛠️ Development
 
@@ -151,18 +165,25 @@ Using Tailwind CSS v4 with PostCSS plugin:
 
 ## 🐛 Known Issues
 
-- Hydration warnings from browser extensions (autofill): Normal in development, doesn't affect production
-- Unsplash image requires `unoptimized` prop: Replace with local assets in production
+None! All previous issues have been resolved:
+- ✅ Tailwind v4 dark mode configuration working correctly
+- ✅ Theme toggle functional with proper state management
+- ✅ No hydration warnings
+- ✅ ESLint passing with no errors
 
 ## 📝 TODO
 
-- [ ] Implement i18n routing
+- [ ] Implement i18n routing with Next.js middleware
 - [ ] Connect to Supabase for dynamic content
-- [ ] Add projects showcase section
-- [ ] Create strategies filtering system
-- [ ] Implement authentication (Supabase Auth)
+- [ ] Add projects showcase section with filtering
+- [ ] Create strategies browsing interface
+- [ ] Implement search functionality
+- [ ] Add authentication (Supabase Auth)
+- [ ] Connect contact form to email service
 - [ ] Add unit tests (Jest + React Testing Library)
 - [ ] Add E2E tests (Playwright)
+- [ ] Optimize images and add proper alt texts
+- [ ] Implement SEO metadata per page
 
 ## 🤝 Contributing
 

@@ -1,6 +1,22 @@
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
+/**
+ * Hero section component with call-to-action
+ * 
+ * Features:
+ * - Full-height viewport design (85vh)
+ * - Background image with gradient overlay
+ * - Theme-aware styling (dark/light modes)
+ * - Responsive typography
+ * - Interactive CTA button with hover effects
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <Hero />
+ * ```
+ */
 export const Hero = () => (
     <section className="relative h-[85vh] flex items-center pt-20 overflow-hidden">
         <div className="absolute inset-0 z-0">

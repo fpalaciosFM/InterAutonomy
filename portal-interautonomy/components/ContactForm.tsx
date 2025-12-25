@@ -1,5 +1,24 @@
 import { Send } from 'lucide-react';
 
+/**
+ * Contact form component for user inquiries
+ * 
+ * Features:
+ * - Responsive two-column layout
+ * - Theme-aware styling
+ * - Accessible form elements
+ * - Visual feedback on focus
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <ContactForm />
+ * ```
+ * 
+ * @todo Connect to backend API or email service
+ * @todo Add form validation
+ * @todo Implement success/error states
+ */
 export const ContactForm = () => (
     <section className="py-24 container mx-auto px-6">
         <div className="bg-slate-50 dark:bg-[#1A1A1A] rounded-[3rem] p-12 md:p-20 grid md:grid-cols-2 gap-16 border border-slate-200 dark:border-white/5">
