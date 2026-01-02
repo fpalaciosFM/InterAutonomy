@@ -160,40 +160,37 @@ def main():
         base_list = base_list[:LIMIT_TEST]
 
     base_catalog = []
-    translations = {lang: [] for lang in IDIOMAS}
 
     for entry in base_list:
         slug = entry["slug"]
-        logo_url = entry.get("logo_url")  # Recuperamos el logo extraído del catálogo
+        logo_url = entry.get("logo_url")
         print(f"\n🚀 Procesando estrategia: {slug}")
+
+        translations = {}
+        hero_image = None
 
         for lang in IDIOMAS:
             print(f"   📥 Descargando [{lang}]...")
             data = fetch_strategy_details(slug, lang)
-
             if data:
-                # Guardar datos maestros (solo una vez por slug)
-                if not any(b["slug"] == slug for b in base_catalog):
-                    # Combinamos el logo (del catálogo) con la hero_image (del detalle)
-                    base_catalog.append(
-                        {"slug": slug, "logo_url": logo_url, **data["base"]}
-                    )
+                # Guardar hero_image solo una vez (del primer idioma disponible)
+                if not hero_image:
+                    hero_image = data["base"].get("hero_image")
+                translations[lang] = data["translation"]
+            time.sleep(1)
 
-                # Guardar traducción
-                translations[lang].append({"slug": slug, **data["translation"]})
+        # Guardar datos maestros y traducciones
+        base_catalog.append({
+            "slug": slug,
+            "logo_url": logo_url,
+            "hero_image": hero_image,
+            "translations": translations
+        })
 
-            time.sleep(1)  # Respeto al servidor
-
-    # --- GUARDADO DE ARCHIVOS ---
+    # --- GUARDADO DE ARCHIVO UNIFICADO ---
     with open("strategies_base.json", "w", encoding="utf-8") as f:
         json.dump(base_catalog, f, indent=4, ensure_ascii=False)
-    print("\n✅ Archivo 'strategies_base.json' generado con logos y hero images.")
-
-    for lang in IDIOMAS:
-        nombre_archivo = f"strategies_data_{lang}.json"
-        with open(nombre_archivo, "w", encoding="utf-8") as f:
-            json.dump(translations[lang], f, indent=4, ensure_ascii=False)
-        print(f"✅ Archivo '{nombre_archivo}' generado.")
+    print("\n✅ Archivo 'strategies_base.json' generado con logos, hero images y traducciones.")
 
 
 if __name__ == "__main__":
