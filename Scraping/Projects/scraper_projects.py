@@ -198,7 +198,8 @@ def main():
         soup_catalog = BeautifulSoup(f.read(), "html.parser")
 
     items = soup_catalog.select(".jet-listing-grid__item")[:LIMIT_TEST]
-    base_catalog, translations = [], {lang: [] for lang in IDIOMAS}
+    base_catalog = []
+    paragraphs_base = []
 
     for item in items:
         url_node = item.select_one("a")
@@ -211,21 +212,73 @@ def main():
         img_node = item.select_one(".elementor-widget-image img")
         img_url = img_node.get("src") or img_node.get("data-src") if img_node else None
 
+        translations = {}
+        gallery_images = []
+        external_link = None
+        location_map = None
+
+        # Para recolectar paragraphs de todos los idiomas
+        paragraphs_by_id = {}
+        paragraphs_strategies = {}
+
         for lang in IDIOMAS:
             print(f"   -> Extrayendo idioma: {lang}")
             data = fetch_project_full_info(url_base, lang)
             if data:
-                if not any(b["slug"] == project_slug for b in base_catalog):
-                    base_catalog.append(
-                        {"slug": project_slug, "thumbnail": img_url, **data["base"]}
-                    )
-                translations[lang].append({"slug": project_slug, **data["translation"]})
+                # Guardar datos base solo una vez
+                if not external_link:
+                    external_link = data["base"].get("external_link")
+                if not location_map:
+                    location_map = data["base"].get("location_map")
+                if not gallery_images:
+                    gallery_images = data["base"].get("gallery_images", [])
+
+                # Procesar paragraphs para este idioma
+                for idx, p in enumerate(data["translation"].get("paragraphs", []), 1):
+                    pid = p["id"]
+                    if pid not in paragraphs_by_id:
+                        paragraphs_by_id[pid] = {lang: {"body_html": p["body_html"]}}
+                        paragraphs_strategies[pid] = data["base"].get("paragraphs_map", [])[idx-1]["strategies"] if data["base"].get("paragraphs_map") and len(data["base"].get("paragraphs_map")) >= idx else []
+                    else:
+                        paragraphs_by_id[pid][lang] = {"body_html": p["body_html"]}
+
+                # Guardar traducciones generales
+                translations[lang] = {
+                    "title": data["translation"].get("title", ""),
+                    "introduction": data["translation"].get("introduction", ""),
+                    "short_description": data["translation"].get("short_description", ""),
+                    "external_link_text": data["translation"].get("external_link_text", ""),
+                    "location_map_text": data["translation"].get("location_map_text", ""),
+                    "video_url": data["translation"].get("video_url", "")
+                }
+
+        # Guardar paragraphs en estructura global
+        order = 1
+        for pid, langs in paragraphs_by_id.items():
+            paragraphs_base.append({
+                "slug": pid,
+                "project_slug": project_slug,
+                "order": order,
+                "translations": {k: v for k, v in langs.items()},
+                "strategies": paragraphs_strategies.get(pid, [])
+            })
+            order += 1
+
+        # Guardar datos base del proyecto
+        base_catalog.append({
+            "slug": project_slug,
+            "thumbnail": img_url,
+            "external_link": external_link,
+            "location_map": location_map,
+            "gallery_images": gallery_images,
+            "translations": translations
+        })
 
     with open("projects_base.json", "w", encoding="utf-8") as f:
         json.dump(base_catalog, f, indent=4, ensure_ascii=False)
-    for lang in IDIOMAS:
-        with open(f"projects_data_{lang}.json", "w", encoding="utf-8") as f:
-            json.dump(translations[lang], f, indent=4, ensure_ascii=False)
+    with open("paragraphs_base.json", "w", encoding="utf-8") as f:
+        json.dump(paragraphs_base, f, indent=4, ensure_ascii=False)
+    print("\n✅ Archivos 'projects_base.json' y 'paragraphs_base.json' generados con la nueva estructura.")
 
 
 if __name__ == "__main__":
