@@ -49,7 +49,7 @@ export const HeroCarousel = () => {
   const next = () => setCurrent((c) => (c === slides.length - 1 ? 0 : c + 1));
 
   return (
-    <section className="relative min-h-[60vh] w-full max-w-7xl mx-auto flex items-stretch overflow-hidden">
+    <section className="relative min-h-[80vh] w-full max-h-[80vh] max-w-7xl mx-auto flex items-stretch overflow-hidden">
       {/* Background Images (stacked) with smooth opacity transitions */}
       <div className="absolute inset-0 z-0">
         {slides.map((s, i) => (
