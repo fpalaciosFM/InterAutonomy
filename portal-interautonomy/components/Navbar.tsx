@@ -84,7 +84,7 @@ export const Navbar = () => {
     };
 
     return (
-        <nav className="fixed top-0 w-full z-50 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/80 backdrop-blur-md">
+        <nav className="sticky top-0 w-full z-50 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/80 backdrop-blur-md">
             <div className="container mx-auto px-6 h-20 flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/" className="relative h-10 w-40 flex-shrink-0">
