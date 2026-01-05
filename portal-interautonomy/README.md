@@ -204,3 +204,40 @@ Private project - All rights reserved
 
 **Fernando Palacios Ahumada**  
 IT Consultant
+
+## Recent Changes
+
+- **chore:** Fixed client/server issues and lint/type problems affecting the `Strategies` page and `Navbar`.
+   - Ensured the client directive (`"use client"`) is the first line in `components/Navbar.tsx`.
+   - Deferred language `setState` in `Navbar` to avoid synchronous setState-in-effect warnings.
+   - Replaced several `any` usages with stricter types in `app/strategies/page.tsx` and `components/StrategyCard.tsx`.
+   - Resolved a locked native swc binary and reinstalled dependencies (`npm ci`), which fixed a Next.js/Turbopack dev panic.
+
+## Quick Local Development Checklist
+
+- Install dependencies:
+
+```bash
+npm ci
+```
+
+- Create a `.env.local` with Supabase variables (if using dynamic content):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+- Remove build cache if you encounter dev panics or native binary errors:
+
+```powershell
+rm -Recurse -Force .next
+```
+
+- Run development server:
+
+```bash
+npm run dev
+```
+
+If you see a panic referencing `next-swc.win32-x64-msvc.node` on Windows, stop all Node processes, remove the locked file under `node_modules/@next/`, then run `npm ci` again.

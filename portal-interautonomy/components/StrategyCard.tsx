@@ -1,7 +1,14 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
-export default function StrategyCard({ strategy, lang = 'en' }: { strategy: any; lang?: string }) {
+type StrategyCardStrategy = {
+  slug: string;
+  translations?: Record<string, Record<string, string>>;
+  hero_image?: string;
+  hero_image_url?: string;
+  logo_url?: string;
+};
+
+export default function StrategyCard({ strategy, lang = 'en' }: { strategy: StrategyCardStrategy; lang?: string }) {
   const title = strategy.translations?.[lang]?.title || strategy.translations?.en?.title || strategy.slug;
 
   return (

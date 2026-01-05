@@ -1,4 +1,4 @@
- 'use client';
+"use client";
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -55,9 +55,13 @@ export const Navbar = () => {
         try {
             const urlLang = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('lang') : null;
             const storedLang = typeof window !== 'undefined' ? localStorage.getItem('lang') : null;
-            if (urlLang) setCurrentLanguage(urlLang as any);
-            else if (storedLang) setCurrentLanguage(storedLang as any);
-        } catch (e) {
+            const allowed = ['en', 'es', 'zh'] as const;
+            if (urlLang && (allowed as readonly string[]).includes(urlLang)) {
+                requestAnimationFrame(() => setCurrentLanguage(urlLang as Language));
+            } else if (storedLang && (allowed as readonly string[]).includes(storedLang)) {
+                requestAnimationFrame(() => setCurrentLanguage(storedLang as Language));
+            }
+        } catch {
             // ignore
         }
     }, []);
@@ -94,7 +98,9 @@ export const Navbar = () => {
         setMobileMenuOpen(false);
         try {
             localStorage.setItem('lang', lang);
-        } catch (e) {}
+        } catch {
+            // ignore
+        }
 
         // update URL search param `lang` while preserving other params
         try {
@@ -102,7 +108,7 @@ export const Navbar = () => {
             sp.set('lang', lang);
             const path = typeof window !== 'undefined' ? window.location.pathname : '/';
             router.push(`${path}?${sp.toString()}`);
-        } catch (e) {
+        } catch {
             // fallback: do nothing
         }
     };
@@ -114,7 +120,7 @@ export const Navbar = () => {
             if (currentLanguage) sp.set('lang', currentLanguage);
             const q = sp.toString();
             return q ? `${href}?${q}` : href;
-        } catch (e) {
+        } catch {
             return href;
         }
     };

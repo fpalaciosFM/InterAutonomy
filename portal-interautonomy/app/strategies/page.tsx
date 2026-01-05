@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import StrategyCard from '../../components/StrategyCard';
-import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 
 // Do NOT create the Supabase client at module evaluation time if env vars are missing.
@@ -12,7 +11,7 @@ type Strategy = {
   slug: string;
   hero_image?: string;
   logo_url?: string;
-  translations?: any;
+  translations?: Record<string, { title?: string }>;
 };
 
 async function getStrategies() {
@@ -39,10 +38,10 @@ async function getStrategies() {
   return data as Strategy[];
 }
 
-export default async function Page({ searchParams }: { searchParams?: any }) {
+export default async function Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   // `searchParams` may be a Promise in some Next.js routing cases — await it safely.
-  const sp = await Promise.resolve(searchParams);
-  const lang = (sp?.lang as string) || 'es';
+  const sp = await Promise.resolve(searchParams as Record<string, string | string[] | undefined> | undefined);
+  const lang = typeof sp?.lang === 'string' ? sp.lang : Array.isArray(sp?.lang) ? sp.lang[0] : 'es';
   const strategies = await getStrategies();
 
   return (
