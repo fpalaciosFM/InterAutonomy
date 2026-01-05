@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import StrategyCard from '../../components/StrategyCard';
 import Image from 'next/image';
+import { Navbar } from '@/components/Navbar';
 
 // Do NOT create the Supabase client at module evaluation time if env vars are missing.
 // Creating it on module load causes a hard crash when NEXT_PUBLIC_SUPABASE_URL is not set.
@@ -45,17 +46,21 @@ export default async function Page({ searchParams }: { searchParams?: any }) {
   const strategies = await getStrategies();
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">Estrategias</h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-300">Explora las estrategias disponibles.</p>
-      </header>
+    <main className="min-h-screen bg-white dark:bg-[#0A0A0A] text-slate-900 dark:text-slate-100 transition-colors duration-500">
+      <Navbar />
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {strategies.map((s) => (
-          <StrategyCard key={s.id || s.slug} strategy={s} lang={lang} />
-        ))}
-      </section>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold">Estrategias</h1>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">Explora las estrategias disponibles.</p>
+        </header>
+
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {strategies.map((s) => (
+            <StrategyCard key={s.id || s.slug} strategy={s} lang={lang} />
+          ))}
+        </section>
+      </div>
     </main>
   );
 }
