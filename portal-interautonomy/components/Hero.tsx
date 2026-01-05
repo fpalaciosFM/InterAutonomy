@@ -31,7 +31,7 @@ export const Hero = () => (
             />
         </div>
 
-        <div className="container mx-auto px-6 relative z-20">
+        <div className="container mx-auto sm:px-6 lg:px-8 relative z-20">
             <div className="max-w-3xl">
                 <h1 className="text-5xl md:text-7xl font-black leading-[1.05] mb-8 tracking-tight text-slate-900 dark:text-white">
                     Strengthen your own initiative <br />
