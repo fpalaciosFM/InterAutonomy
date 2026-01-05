@@ -50,24 +50,40 @@ export const HeroCarousel = () => {
 
   return (
     <section className="relative min-h-[60vh] w-full max-w-7xl mx-auto flex items-stretch overflow-hidden">
-      {/* Background Image */}
+      {/* Background Images (stacked) with smooth opacity transitions */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src={slides[current].image}
-          alt="Hero background"
-          fill
-          className="object-cover w-full h-full object-center"
-          priority
-          unoptimized
-        />
+        {slides.map((s, i) => (
+          <div key={s.image} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${i === current ? 'opacity-100' : 'opacity-0'}`}>
+            <Image
+              src={s.image}
+              alt={`Slide ${i + 1}`}
+              fill
+              className="object-cover w-full h-full object-center"
+              priority={i === current}
+              unoptimized
+            />
+          </div>
+        ))}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent z-10" />
       </div>
 
-      {/* Slide Content */}
-      <div className={`container mx-auto sm:px-6 lg:px-8 relative z-20 flex flex-1 flex-col justify-center ${slides[current].align === 'right' ? 'items-end' : 'items-start'}`}>
-        <div className="max-w-3xl p-4 md:p-8 mx-4 md:mx-8">
-          {slides[current].text}
-          <button className="mt-4 md:mt-6 group flex items-center gap-3 bg-white/90 text-black px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-base md:text-lg hover:shadow-2xl hover:shadow-blue-500/20 transition-all">
+      {/* Slide Content (stacked text blocks with transitions) */}
+      <div className="container mx-auto sm:px-6 lg:px-8 relative z-20 flex-1">
+        {slides.map((s, i) => (
+          <div
+            key={`text-${i}`}
+            className={`absolute inset-0 flex items-center ${s.align === 'right' ? 'justify-end text-right' : 'justify-start text-left'} transition-all duration-700 ease-in-out transform ${
+              i === current ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="max-w-3xl p-4 md:p-8 mx-4 md:mx-8">
+              {s.text}
+            </div>
+          </div>
+        ))}
+        {/* Central CTA fixed at bottom of hero */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-12 z-30">
+          <button className="group flex items-center gap-3 bg-white/90 text-black px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-base md:text-lg hover:shadow-2xl hover:shadow-blue-500/20 transition-all">
             Explore Strategies
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
@@ -90,8 +106,8 @@ export const HeroCarousel = () => {
         <ChevronRight className="w-7 h-7" />
       </button>
 
-      {/* Dots */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+      {/* Dots (moved to top to avoid overlapping CTA) */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-2 z-30">
         {slides.map((_, i) => (
           <button
             key={i}
