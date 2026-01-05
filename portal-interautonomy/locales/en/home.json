@@ -1,0 +1,21 @@
+{
+  "meta": { "title": "Home" },
+  "hero": {
+    "title": "Welcome to InterAutonomy",
+    "subtitle": "Practical resources for self-sustainability"
+    ,"slide2": {
+      "heading": "Are you working to address issues of poverty, health, environment, education...?",
+      "subheading": "These strategies can help make your project more self-sustainable!"
+    },
+    "slide1": {
+      "text": "Self-Sustainability Strategies\nfor Development Initiatives"
+    },
+    "slide3": {
+      "text": "Strengthen your own initiative\nby learning from the experience\nof projects worldwide!"
+    }
+  },
+  "intro": {
+    "heading": "What we do",
+    "text": "We share strategies and projects that help communities become self-sustaining."
+  }
+}

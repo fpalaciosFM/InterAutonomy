@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import StrategyCard from '../../components/StrategyCard';
 import { Navbar } from '@/components/Navbar';
+import { Hero } from '../../components/Hero';
+import en from '../../locales/en/strategies.json';
+import es from '../../locales/es/strategies.json';
+import zh from '../../locales/zh/strategies.json';
 
 // Do NOT create the Supabase client at module evaluation time if env vars are missing.
 // Creating it on module load causes a hard crash when NEXT_PUBLIC_SUPABASE_URL is not set.
@@ -44,14 +48,22 @@ export default async function Page({ searchParams }: { searchParams?: Record<str
   const lang = typeof sp?.lang === 'string' ? sp.lang : Array.isArray(sp?.lang) ? sp.lang[0] : 'es';
   const strategies = await getStrategies();
 
+  const locale = lang === 'en' ? en : lang === 'zh' ? zh : es;
+
   return (
     <main className="min-h-screen bg-white dark:bg-[#0A0A0A] text-slate-900 dark:text-slate-100 transition-colors duration-500">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <Hero
+        variant="vibrant"
+        title={locale.hero.title}
+        align="center"
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-8 sm:mt-12">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold">Estrategias</h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">Explora las estrategias disponibles.</p>
+          <h1 className="text-3xl font-bold">{locale.page.title}</h1>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">{locale.page.description}</p>
         </header>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

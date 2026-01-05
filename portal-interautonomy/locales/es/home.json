@@ -1,0 +1,21 @@
+{
+  "meta": { "title": "Inicio" },
+  "hero": {
+    "title": "Bienvenido a InterAutonomy",
+    "subtitle": "Recursos prácticos para la autosustentabilidad"
+    ,"slide2": {
+      "heading": "¿Estás trabajando para abordar problemas de pobreza, salud, medio ambiente, educación...?",
+      "subheading": "¡Estas estrategias pueden ayudar a que tu proyecto sea más autosustentable!"
+    },
+    "slide1": {
+      "text": "Estrategias de Autosostenibilidad\npara Iniciativas de Desarrollo"
+    },
+    "slide3": {
+      "text": "Fortalece tu propia iniciativa\naprendiendo de la experiencia\nde proyectos en todo el mundo!"
+    }
+  },
+  "intro": {
+    "heading": "Qué hacemos",
+    "text": "Compartimos estrategias y proyectos que ayudan a las comunidades a ser autosustentables."
+  }
+}

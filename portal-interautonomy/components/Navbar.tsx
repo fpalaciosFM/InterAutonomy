@@ -161,13 +161,13 @@ export const Navbar = () => {
                         className="hidden xl:inline-flex p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                         aria-label="Toggle theme"
                     >
-                        {!mounted ? (
-                            <div className="w-5 h-5" />
-                        ) : isDark ? (
-                            <Sun className="w-5 h-5 text-yellow-500" />
-                        ) : (
-                            <Moon className="w-5 h-5 text-slate-700" />
-                        )}
+                            {!mounted ? (
+                                <div className="w-5 h-5" />
+                            ) : isDark ? (
+                                <Sun className="w-5 h-5 text-yellow-500" />
+                            ) : (
+                                <Moon className="w-5 h-5 text-slate-700" />
+                            )}
                     </button>
 
                     {/* Search - Hidden on mobile */}
@@ -238,7 +238,7 @@ export const Navbar = () => {
                             <button
                                 onClick={toggleTheme}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                                aria-label="Toggle theme"
+                                aria-label={translations[currentLanguage].ui.toggleTheme}
                             >
                                 {!mounted ? (
                                     <div className="w-5 h-5" />
@@ -247,16 +247,16 @@ export const Navbar = () => {
                                 ) : (
                                     <Moon className="w-5 h-5 text-slate-700" />
                                 )}
-                                <span className="ml-2">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                                <span className="ml-2">{isDark ? translations[currentLanguage].ui.lightMode : translations[currentLanguage].ui.darkMode}</span>
                             </button>
                         </div>
 
                         {/* Mobile Search */}
                         <div className="pt-4">
                             <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors">
-                                <Search className="w-5 h-5 opacity-70" />
-                                Search
-                            </button>
+                                    <Search className="w-5 h-5 opacity-70" />
+                                    {translations[currentLanguage].ui.search}
+                                </button>
                         </div>
                     </div>
                 </div>

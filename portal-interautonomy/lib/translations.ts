@@ -37,6 +37,12 @@ export const translations = {
       about: 'About us',
       contact: 'Contact us',
     },
+    ui: {
+      lightMode: 'Light Mode',
+      darkMode: 'Dark Mode',
+      search: 'Search',
+      toggleTheme: 'Toggle theme'
+    },
     hero: {
       title: 'Strengthen your own initiative',
       subtitle: 'by learning',
@@ -62,6 +68,12 @@ export const translations = {
       about: 'Sobre nosotros',
       contact: 'Contáctanos',
     },
+    ui: {
+      lightMode: 'Modo claro',
+      darkMode: 'Modo oscuro',
+      search: 'Buscar',
+      toggleTheme: 'Cambiar tema'
+    },
     hero: {
       title: 'Fortalece tu propia iniciativa',
       subtitle: 'aprendiendo',
@@ -86,6 +98,12 @@ export const translations = {
       projects: '变革项目！',
       about: '关于我们',
       contact: '联系我们',
+    },
+    ui: {
+      lightMode: '浅色模式',
+      darkMode: '深色模式',
+      search: '搜索',
+      toggleTheme: '切换主题'
     },
     hero: {
       title: '加强你自己的倡议',

@@ -3,56 +3,56 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const slides = [
+const buildText = (raw: string, className = 'text-xl md:text-2xl lg:text-3xl') => (
+  <h1 className={`${className} font-black leading-tight md:leading-[1.05] tracking-tight text-white drop-shadow-xl p-2 md:p-4 mb-4`}>
+    {raw.split('\n').map((l, i, a) => (
+      <span key={i}>
+        {l}
+        {i < a.length - 1 ? <br /> : null}
+      </span>
+    ))}
+  </h1>
+);
+
+type SlideItem = {
+  image: string;
+  text?: string; // main multiline title
+  heading?: string; // alternative heading
+  subheading?: string; // optional sub text
+  align?: 'left' | 'right';
+};
+
+const defaultSlides = (): SlideItem[] => [
   {
     image: 'https://interautonomy.org/wp-content/uploads/2022/12/44.-Sungai-Utik-Case-Photo-scaled.jpg',
-    text: (
-      <h1 className="text-xl md:text-2xl lg:text-3xl font-black leading-tight md:leading-[1.05] tracking-tight text-white drop-shadow-xl p-2 md:p-4 mb-4">
-        Self-Sustainability Strategies<br />
-        for Development Initiatives
-      </h1>
-    ),
+    text: 'Self-Sustainability Strategies\nfor Development Initiatives',
     align: 'left',
   },
   {
     image: 'https://interautonomy.org/wp-content/uploads/2022/12/30-scaled.jpg',
-    text: (
-      <div className="text-right p-2 md:p-4">
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-black leading-tight md:leading-[1.05] tracking-tight text-white drop-shadow-xl mb-3 md:mb-4">
-          Are you working to address issues<br />
-          of poverty, health, environment, education...?
-        </h1>
-        <h2 className="text-base md:text-lg lg:text-xl font-bold text-white drop-shadow-xl mb-2">
-          These strategies can help make your project more self-sustainable!
-        </h2>
-      </div>
-    ),
+    heading: 'Are you working to address issues of poverty, health, environment, education...?',
+    subheading: 'These strategies can help make your project more self-sustainable!',
     align: 'right',
   },
   {
     image: 'https://interautonomy.org/wp-content/uploads/2022/12/43.-Aldeas-Campesinas-Case-Photo-scaled.jpg',
-    text: (
-      <h1 className="text-xl md:text-2xl lg:text-3xl font-black leading-tight md:leading-[1.05] tracking-tight text-white drop-shadow-xl p-2 md:p-4 mb-4">
-        Strengthen your own initiative<br />
-        by learning from the experience<br />
-        of projects worldwide!
-      </h1>
-    ),
+    text: 'Strengthen your own initiative\nby learning from the experience\nof projects worldwide!',
     align: 'left',
   },
 ];
 
-export const HeroCarousel = () => {
+export const HeroCarousel = ({ slidesData }: { slidesData?: SlideItem[] }) => {
   const [current, setCurrent] = useState(0);
+  const slidesList = slidesData ?? defaultSlides();
 
-  const prev = () => setCurrent((c) => (c === 0 ? slides.length - 1 : c - 1));
-  const next = () => setCurrent((c) => (c === slides.length - 1 ? 0 : c + 1));
+  const prev = () => setCurrent((c) => (c === 0 ? slidesList.length - 1 : c - 1));
+  const next = () => setCurrent((c) => (c === slidesList.length - 1 ? 0 : c + 1));
 
   return (
     <section className="relative min-h-[80vh] w-full max-h-[80vh] max-w-7xl mx-auto flex items-stretch overflow-hidden">
       {/* Background Images (stacked) with smooth opacity transitions */}
       <div className="absolute inset-0 z-0">
-        {slides.map((s, i) => (
+        {slidesList.map((s, i) => (
           <div key={s.image} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${i === current ? 'opacity-100' : 'opacity-0'}`}>
             <Image
               src={s.image}
@@ -69,15 +69,26 @@ export const HeroCarousel = () => {
 
       {/* Slide Content (stacked text blocks with transitions) */}
       <div className="container mx-auto sm:px-6 lg:px-8 relative z-20 flex-1">
-        {slides.map((s, i) => (
+        {slidesList.map((s, i) => (
           <div
             key={`text-${i}`}
             className={`absolute inset-0 flex items-center ${s.align === 'right' ? 'justify-end text-right' : 'justify-start text-left'} transition-all duration-700 ease-in-out transform ${
               i === current ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
             }`}
           >
-            <div className="max-w-3xl p-4 md:p-8 mx-4 md:mx-8">
-              {s.text}
+              <div className="max-w-3xl p-4 md:p-8 mx-4 md:mx-8">
+              {s.heading ? (
+                <div className="text-right p-2 md:p-4">
+                  <h1 className="text-xl md:text-2xl lg:text-3xl font-black leading-tight md:leading-[1.05] tracking-tight text-white drop-shadow-xl mb-3 md:mb-4">
+                    {s.heading}
+                  </h1>
+                  {s.subheading ? (
+                    <h2 className="text-base md:text-lg lg:text-xl font-bold text-white drop-shadow-xl mb-2">{s.subheading}</h2>
+                  ) : null}
+                </div>
+              ) : s.text ? (
+                buildText(s.text)
+              ) : null}
             </div>
           </div>
         ))}
@@ -108,7 +119,7 @@ export const HeroCarousel = () => {
 
       {/* Dots (moved to top to avoid overlapping CTA) */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-2 z-30">
-        {slides.map((_, i) => (
+        {slidesList.map((_, i) => (
           <button
             key={i}
             className={`w-3 h-3 rounded-full ${i === current ? 'bg-white' : 'bg-white/50'} border border-white`}

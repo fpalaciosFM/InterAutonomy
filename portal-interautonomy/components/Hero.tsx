@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+import React from 'react';
 import Image from 'next/image';
 
 /**
@@ -17,31 +17,68 @@ import Image from 'next/image';
  * <Hero />
  * ```
  */
-export const Hero = () => (
-    <section className="relative h-[85vh] flex items-center pt-20 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent dark:from-black dark:via-black/80 dark:to-transparent z-10" />
-            <Image
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&h=1080&fit=crop"
-                alt="Background"
-                className="w-full h-full object-cover opacity-40 dark:opacity-50 grayscale-[30%]"
-                fill
-                priority
-                unoptimized
-            />
-        </div>
+type HeroProps = {
+    variant?: 'default' | 'vibrant'
+    title?: string
+    lang?: string
+    align?: 'left' | 'center'
+}
 
-        <div className="container mx-auto sm:px-6 lg:px-8 relative z-20">
-            <div className="max-w-3xl">
-                <h1 className="text-5xl md:text-7xl font-black leading-[1.05] mb-8 tracking-tight text-slate-900 dark:text-white">
-                    Strengthen your own initiative <br />
-                    <span className="text-blue-600 dark:text-blue-400 italic font-serif">by learning</span> from the experience!
-                </h1>
-                <button className="group flex items-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-blue-500/20 transition-all">
-                    Explore Strategies
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
+export const Hero = ({ variant = 'default', title, lang = 'en', align = 'left' }: HeroProps) => {
+    const isVibrant = variant === 'vibrant';
+    return (
+        <section className="relative h-[60vh] flex items-center pt-16 overflow-hidden">
+            <div className="absolute inset-0 z-0">
+                {/* colorful overlay for vibrant variant, otherwise subtle gradient */}
+                <div
+                    className={
+                        isVibrant
+                            ? 'absolute inset-0 bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 opacity-85 mix-blend-multiply z-20 animate-[pulse_6s_infinite]' 
+                            : 'absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent dark:from-black dark:via-black/80 dark:to-transparent z-10'
+                    }
+                />
+                <Image
+                    src={
+                        isVibrant
+                            ? 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&h=1080&fit=crop&auto=format&blend=111827&sat=50'
+                            : 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&h=1080&fit=crop'
+                    }
+                    alt="Background"
+                    className={
+                        isVibrant
+                            ? 'w-full h-full object-cover opacity-60 scale-105 brightness-90'
+                            : 'w-full h-full object-cover opacity-40 dark:opacity-50 grayscale-[30%]'
+                    }
+                    fill
+                    priority
+                    unoptimized
+                />
             </div>
-        </div>
-    </section>
-);
+
+            <div className="container mx-auto sm:px-6 lg:px-8 relative z-30">
+                <div className={`max-w-2xl ${align === 'center' ? 'mx-auto text-center' : ''}`}>
+                    {
+                        // internal translations used when `title` prop not provided
+                    }
+                    {(() => {
+                        const translations: Record<string, string> = {
+                            en: 'Self-Sustainability Strategies\nfor Development Initiatives',
+                            es: 'Estrategias de Autosostenibilidad\npara Iniciativas de Desarrollo'
+                        };
+                        const resolved = title ?? translations[lang] ?? translations['en'];
+                        return (
+                            <h1 className="text-3xl md:text-5xl font-black leading-[1.05] mb-6 tracking-tight text-slate-900 dark:text-white">
+                                {resolved.split('\n').map((line, i, arr) => (
+                                    <span key={i}>
+                                        {line}
+                                        {i < arr.length - 1 ? <br /> : null}
+                                    </span>
+                                ))}
+                            </h1>
+                        );
+                    })()}
+                </div>
+            </div>
+        </section>
+    );
+}
