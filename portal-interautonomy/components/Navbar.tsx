@@ -1,7 +1,7 @@
  'use client';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Search, Globe, ChevronDown, Menu, X, Sun, Moon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -30,8 +30,6 @@ export const Navbar = () => {
     const [isDark, setIsDark] = useState(false);
     const [mounted, setMounted] = useState(false);
     const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
 
     /**
      * Initialize theme on mount from localStorage or system preference
@@ -102,7 +100,8 @@ export const Navbar = () => {
         try {
             const sp = new URLSearchParams(window.location.search);
             sp.set('lang', lang);
-            router.push(`${pathname}?${sp.toString()}`);
+            const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+            router.push(`${path}?${sp.toString()}`);
         } catch (e) {
             // fallback: do nothing
         }
@@ -111,13 +110,10 @@ export const Navbar = () => {
     // Build href preserving existing query params and setting lang
     const buildHref = (href: string) => {
         try {
-            if (typeof window !== 'undefined') {
-                const sp = new URLSearchParams(window.location.search);
-                if (currentLanguage) sp.set('lang', currentLanguage);
-                const q = sp.toString();
-                return q ? `${href}?${q}` : href;
-            }
-            return currentLanguage ? `${href}?lang=${currentLanguage}` : href;
+            const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+            if (currentLanguage) sp.set('lang', currentLanguage);
+            const q = sp.toString();
+            return q ? `${href}?${q}` : href;
         } catch (e) {
             return href;
         }
