@@ -14,17 +14,22 @@ export default function StrategyCard({ strategy, lang = 'en' }: { strategy: Stra
   return (
     <article className="group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900">
       <div className="relative h-56 bg-slate-200">
-        { (strategy.hero_image || strategy.hero_image_url) ? (
-          <Image
-            src={strategy.hero_image || strategy.hero_image_url}
-            alt={title}
-            fill
-            className="object-cover"
-            unoptimized={true}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-slate-200" />
-        )}
+        {
+          (() => {
+            const imgSrc = strategy.hero_image || strategy.hero_image_url;
+            return imgSrc ? (
+              <Image
+                src={imgSrc}
+                alt={title}
+                fill
+                className="object-cover"
+                unoptimized={true}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-slate-200" />
+            );
+          })()
+        }
 
         {/* logo overlay centered horizontally near bottom */}
         {strategy.logo_url && (

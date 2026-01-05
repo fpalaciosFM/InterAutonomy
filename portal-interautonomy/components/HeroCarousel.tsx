@@ -14,7 +14,7 @@ const buildText = (raw: string, className = 'text-xl md:text-2xl lg:text-3xl') =
   </h1>
 );
 
-type SlideItem = {
+export type SlideItem = {
   image: string;
   text?: string; // main multiline title
   heading?: string; // alternative heading

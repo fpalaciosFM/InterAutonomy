@@ -1,7 +1,8 @@
 import { Send } from 'lucide-react';
 import { translations } from '@/lib/translations';
+import type { Language } from '@/lib/translations';
 
-type ContactFormProps = { lang?: 'en' | 'es' | 'zh' };
+type ContactFormProps = { lang?: Language };
 
 /**
  * Contact form component for user inquiries
