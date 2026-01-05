@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Globe, ChevronDown, Menu, X, Sun, Moon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,6 +29,9 @@ export const Navbar = () => {
     const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
     const [isDark, setIsDark] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     /**
      * Initialize theme on mount from localStorage or system preference
@@ -49,6 +53,15 @@ export const Navbar = () => {
             setIsDark(shouldBeDark);
             setMounted(true);
         });
+        // Initialize language from URL (search param) or localStorage
+        try {
+            const urlLang = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('lang') : null;
+            const storedLang = typeof window !== 'undefined' ? localStorage.getItem('lang') : null;
+            if (urlLang) setCurrentLanguage(urlLang as any);
+            else if (storedLang) setCurrentLanguage(storedLang as any);
+        } catch (e) {
+            // ignore
+        }
     }, []);
 
     /**
@@ -81,6 +94,33 @@ export const Navbar = () => {
         setCurrentLanguage(lang);
         setLanguageMenuOpen(false);
         setMobileMenuOpen(false);
+        try {
+            localStorage.setItem('lang', lang);
+        } catch (e) {}
+
+        // update URL search param `lang` while preserving other params
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            sp.set('lang', lang);
+            router.push(`${pathname}?${sp.toString()}`);
+        } catch (e) {
+            // fallback: do nothing
+        }
+    };
+
+    // Build href preserving existing query params and setting lang
+    const buildHref = (href: string) => {
+        try {
+            if (typeof window !== 'undefined') {
+                const sp = new URLSearchParams(window.location.search);
+                if (currentLanguage) sp.set('lang', currentLanguage);
+                const q = sp.toString();
+                return q ? `${href}?${q}` : href;
+            }
+            return currentLanguage ? `${href}?lang=${currentLanguage}` : href;
+        } catch (e) {
+            return href;
+        }
     };
 
     return (
@@ -103,7 +143,7 @@ export const Navbar = () => {
                     {NAV_ROUTES.map((route) => (
                         <Link
                             key={route.href}
-                            href={route.href}
+                            href={buildHref(route.href)}
                             className="px-3 py-2 text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap"
                         >
                             {t[route.key]}
@@ -183,7 +223,7 @@ export const Navbar = () => {
                         {NAV_ROUTES.map((route) => (
                             <Link
                                 key={route.href}
-                                href={route.href}
+                                href={buildHref(route.href)}
                                 onClick={() => setMobileMenuOpen(false)}
                                 className="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                             >
