@@ -171,12 +171,16 @@ None! All previous issues have been resolved:
 - ✅ No hydration warnings
 - ✅ ESLint passing with no errors
 
+
 ## 📝 TODO
 
 - [ ] Implement i18n routing with Next.js middleware
 - [ ] Connect to Supabase for dynamic content
 - [ ] Add projects showcase section with filtering
 - [ ] Create strategies browsing interface
+- [ ] Implement project and strategy catalog pages, displaying lists of all available projects and strategies.
+- [ ] Create detail pages for each project and strategy, dynamically fetching their information and translations from Supabase.
+- [ ] Ensure all multilingual content (titles, descriptions, etc.) is loaded from Supabase JSONB columns for both catalog and detail pages.
 - [ ] Implement search functionality
 - [ ] Add authentication (Supabase Auth)
 - [ ] Connect contact form to email service
