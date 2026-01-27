@@ -233,7 +233,10 @@ export default async function ProjectDetailPage({
   const heroUrl = project.thumbnail_url || '';
   const logoUrl = project.logo_url || '';
 
-  const videoUrl = t.video_url || '';
+  const videoUrl =
+    t.video_url ||
+    project.translations?.en?.video_url ||
+    '';
   const video = getVideoEmbedInfo(videoUrl);
 
   const externalLinkText = t.external_link_text || '';
@@ -295,7 +298,7 @@ export default async function ProjectDetailPage({
       </header>
 
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="max-w-3xl mx-auto">
           <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-white/5">
             <div className="aspect-video bg-slate-200 dark:bg-slate-800">
               {video.kind === 'iframe' ? (
@@ -314,7 +317,7 @@ export default async function ProjectDetailPage({
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="mt-6 space-y-4 text-left">
             {externalLinkText && externalLinkUrl ? (
               <a
                 href={externalLinkUrl}
@@ -382,20 +385,22 @@ export default async function ProjectDetailPage({
                         <Link
                           key={`${p.id}:${sid}`}
                           href={href}
-                          className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:scale-[1.03] transition-transform"
+                          className="inline-flex items-center justify-center rounded-full overflow-hidden hover:opacity-90 transition-opacity"
                           title={sTitle}
                         >
                           {s.logo_url ? (
                             <Image
                               src={s.logo_url}
                               alt={sTitle}
-                              width={28}
-                              height={28}
-                              className="object-contain"
+                              width={24}
+                              height={24}
+                              className="block object-cover"
                               unoptimized={true}
                             />
                           ) : (
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-200">IA</span>
+                            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-200">
+                              IA
+                            </span>
                           )}
                         </Link>
                       );
