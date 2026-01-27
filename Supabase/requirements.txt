@@ -1,0 +1,4 @@
+# Requirements for Supabase migration scripts
+# Install with: pip install -r requirements.txt
+python-dotenv>=1.0.0,<2
+supabase>=1.0.0,<2

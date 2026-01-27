@@ -149,6 +149,13 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
+Tip: you can copy the provided `.env.example` into `.env.local` and fill in your values:
+
+```bash
+cp .env.example .env.local
+# then edit .env.local
+```
+
 ### Tailwind Configuration
 Using Tailwind CSS v4 with PostCSS plugin:
 - Custom components in `globals.css`
