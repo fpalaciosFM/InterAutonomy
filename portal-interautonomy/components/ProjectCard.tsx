@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { Config, DOMPurifyI } from 'dompurify';
+import type { Config } from 'dompurify';
+
+type DOMPurifyInstance = {
+  sanitize: (dirty: string, cfg?: Config) => string;
+};
 
 function hasSanitize(value: unknown): value is { sanitize: (dirty: string, cfg?: Config) => string } {
   if (typeof value !== 'object' || value === null) return false;
@@ -59,13 +63,13 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
         const mod = await import('dompurify');
         const maybeDefault: unknown = (mod as { default?: unknown }).default;
 
-        let purifier: DOMPurifyI | null = null;
+        let purifier: DOMPurifyInstance | null = null;
         if (typeof maybeDefault === 'function') {
-          purifier = (maybeDefault as (win: Window) => DOMPurifyI)(window);
+          purifier = (maybeDefault as (win: Window) => DOMPurifyInstance)(window);
         } else if (hasSanitize(maybeDefault)) {
-          purifier = maybeDefault as unknown as DOMPurifyI;
+          purifier = maybeDefault as unknown as DOMPurifyInstance;
         } else if (hasSanitize(mod)) {
-          purifier = mod as unknown as DOMPurifyI;
+          purifier = mod as unknown as DOMPurifyInstance;
         }
 
         const config: Config = {
