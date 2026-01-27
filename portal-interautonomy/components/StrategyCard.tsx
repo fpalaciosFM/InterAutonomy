@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 type StrategyCardStrategy = {
   slug: string;
@@ -10,9 +11,11 @@ type StrategyCardStrategy = {
 
 export default function StrategyCard({ strategy, lang = 'en' }: { strategy: StrategyCardStrategy; lang?: string }) {
   const title = strategy.translations?.[lang]?.title || strategy.translations?.en?.title || strategy.slug;
+  const href = `/strategies/${encodeURIComponent(strategy.slug)}?lang=${encodeURIComponent(lang)}`;
 
   return (
-    <article className="group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900">
+    <Link href={href} className="block">
+      <article className="group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900 transition-transform hover:-translate-y-0.5">
       <div className="relative h-56 bg-slate-200">
         {
           (() => {
@@ -42,6 +45,7 @@ export default function StrategyCard({ strategy, lang = 'en' }: { strategy: Stra
       <div className="p-4 text-center">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
       </div>
-    </article>
+      </article>
+    </Link>
   );
 }
