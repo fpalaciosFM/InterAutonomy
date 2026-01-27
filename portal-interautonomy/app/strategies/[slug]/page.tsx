@@ -136,11 +136,11 @@ export default async function StrategyDetailPage({
           className="relative overflow-hidden min-h-[60vh] sm:min-h-[55vh] md:min-h-[48vh] bg-center bg-cover flex items-center py-10"
           style={heroUrl ? { backgroundImage: `url('${heroUrl}')` } : undefined}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/80" />
 
           <div className="relative z-10 max-w-5xl mx-auto w-full px-4 text-center">
             {logoUrl ? (
-              <div className="mx-auto w-28 h-28 rounded-full overflow-hidden bg-white/90 dark:bg-slate-800 flex items-center justify-center border border-white mb-4">
+              <div className="mx-auto w-28 h-28 rounded-full overflow-hidden bg-white/90 dark:bg-slate-800 flex items-center justify-center border border-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.35)] mb-5">
                 <Image
                   src={logoUrl}
                   alt={`${title} logo`}
@@ -152,9 +152,13 @@ export default async function StrategyDetailPage({
               </div>
             ) : null}
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{title}</h1>
-            <p className="mt-2 text-sm text-white/90">{SUBTITLE_BY_LANG[lang]}</p>
-            <p className="mt-6 max-w-3xl mx-auto text-white/90 text-sm leading-relaxed">{LEAD_BY_LANG[lang]}</p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+              {title}
+            </h1>
+            <p className="mt-2 text-sm text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">{SUBTITLE_BY_LANG[lang]}</p>
+            <p className="mt-6 max-w-3xl mx-auto text-white/90 text-sm leading-relaxed drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">
+              {LEAD_BY_LANG[lang]}
+            </p>
 
             <div className="mt-7">
               <Link
