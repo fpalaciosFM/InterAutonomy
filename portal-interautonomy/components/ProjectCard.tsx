@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Config, DOMPurifyI } from 'dompurify';
 
 function hasSanitize(value: unknown): value is { sanitize: (dirty: string, cfg?: Config) => string } {
@@ -32,6 +33,7 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
 
   const title = project.translations?.[lang]?.title || project.translations?.en?.title || project.slug;
   const shortDescriptionHtml = project.translations?.[lang]?.short_description || project.translations?.en?.short_description || '';
+  const href = `/projects/${encodeURIComponent(project.slug)}?lang=${encodeURIComponent(lang)}`;
 
   const imgSrc = project.thumbnail_url || '';
 
@@ -97,10 +99,11 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
   const showMore = previewText.length > 140;
 
   return (
-    <article
-      className={`group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900 transition-transform ${open ? '' : 'hover:-translate-y-0.5'}`}
-    >
-      <div className="relative h-56 bg-slate-200 dark:bg-slate-800">
+    <Link href={href} className="block">
+      <article
+        className={`group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900 transition-transform ${open ? '' : 'hover:-translate-y-0.5'}`}
+      >
+        <div className="relative h-56 bg-slate-200 dark:bg-slate-800">
         {imgSrc ? (
           <Image
             src={imgSrc}
@@ -112,7 +115,7 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
         ) : (
           <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800" />
         )}
-      </div>
+        </div>
 
       <div className="p-5">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
@@ -125,7 +128,9 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
           <div className="mt-4">
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setSanitizedHtml('');
                 setOpen(true);
               }}
@@ -185,6 +190,7 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
             document.body
           )
         : null}
-    </article>
+      </article>
+    </Link>
   );
 }
