@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import Image from 'next/image';
 import Link from 'next/link';
 
+import GalleryLightbox from '@/components/GalleryLightbox';
 import { Navbar } from '@/components/Navbar';
 import { sanitizeHtmlFragment } from '@/lib/sanitizeHtml';
 
@@ -11,6 +12,7 @@ type ProjectRowBase = {
   thumbnail_url: string | null;
   external_link_url: string | null;
   location_map_url: string | null;
+  gallery_urls: string[] | null;
   translations: Record<
     string,
     {
@@ -81,21 +83,30 @@ const CTA_BY_LANG: Record<string, string> = {
   zh: '这些策略能让我的项目更具自我可持续性吗？点击：',
 };
 
-const UI_BY_LANG: Record<string, { back: string; notFoundTitle: string; notFoundLead: string }> = {
+const UI_BY_LANG: Record<
+  string,
+  { back: string; notFoundTitle: string; notFoundLead: string; galleryTitle: string; strategiesAssociatedTitle: string }
+> = {
   es: {
     back: 'Volver a Proyectos',
     notFoundTitle: 'Proyecto no encontrado',
     notFoundLead: 'No existe un proyecto con el slug',
+    galleryTitle: 'Galería',
+    strategiesAssociatedTitle: 'Estrategias asociadas con este proyecto',
   },
   en: {
     back: 'Back to Projects',
     notFoundTitle: 'Project not found',
     notFoundLead: 'There is no project with slug',
+    galleryTitle: 'Gallery',
+    strategiesAssociatedTitle: 'Strategies associated with this project',
   },
   zh: {
     back: '返回项目列表',
     notFoundTitle: '未找到该项目',
     notFoundLead: '不存在该项目，slug 为',
+    galleryTitle: '图库',
+    strategiesAssociatedTitle: '与该项目相关的策略',
   },
 };
 
@@ -114,7 +125,7 @@ async function getProjectBySlug(slug: string): Promise<ProjectRowWithMaybeLogo |
   // `logo_url` may not exist yet in the DB schema. Try selecting it and fall back.
   const { data: dataWithLogo, error: errWithLogo } = await supabase
     .from('projects')
-    .select('id, slug, thumbnail_url, external_link_url, location_map_url, translations, logo_url')
+    .select('id, slug, thumbnail_url, external_link_url, location_map_url, gallery_urls, translations, logo_url')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -122,7 +133,7 @@ async function getProjectBySlug(slug: string): Promise<ProjectRowWithMaybeLogo |
 
   const { data, error } = await supabase
     .from('projects')
-    .select('id, slug, thumbnail_url, external_link_url, location_map_url, translations')
+    .select('id, slug, thumbnail_url, external_link_url, location_map_url, gallery_urls, translations')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -232,6 +243,7 @@ export default async function ProjectDetailPage({
   const title = t.title || project.slug;
   const heroUrl = project.thumbnail_url || '';
   const logoUrl = project.logo_url || '';
+  const galleryUrls = Array.isArray(project.gallery_urls) ? project.gallery_urls.filter(Boolean) : [];
 
   const videoUrl =
     t.video_url ||
@@ -264,6 +276,12 @@ export default async function ProjectDetailPage({
 
   const safeShortDescription = sanitizeHtmlFragment(shortDescriptionHtml);
   const safeIntroduction = sanitizeHtmlFragment(introductionHtml);
+
+  const strategiesSorted = [...strategies].sort((a, b) => {
+    const aTitle = a.translations?.[lang]?.title || a.translations?.en?.title || a.slug;
+    const bTitle = b.translations?.[lang]?.title || b.translations?.en?.title || b.slug;
+    return aTitle.localeCompare(bTitle);
+  });
 
   return (
     <main className="min-h-screen bg-white dark:bg-[#0A0A0A] text-slate-900 dark:text-slate-100 transition-colors duration-500">
@@ -412,6 +430,55 @@ export default async function ProjectDetailPage({
           })}
         </div>
       </section>
+
+      {galleryUrls.length > 0 ? (
+        <GalleryLightbox images={galleryUrls} title={title} sectionTitle={ui.galleryTitle} />
+      ) : null}
+
+      {strategiesSorted.length > 0 ? (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+          <header className="mb-6">
+            <h2 className="text-2xl font-bold">{ui.strategiesAssociatedTitle}</h2>
+          </header>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            {strategiesSorted.map((s) => {
+              const sTitle = s.translations?.[lang]?.title || s.translations?.en?.title || s.slug;
+              const href = `/strategies/${encodeURIComponent(s.slug)}?lang=${encodeURIComponent(lang)}`;
+
+              return (
+                <Link
+                  key={s.id}
+                  href={href}
+                  className="group flex flex-col items-center text-center"
+                  title={sTitle}
+                >
+                  {s.logo_url ? (
+                    <div className="w-16 h-16 rounded-full overflow-hidden">
+                      <Image
+                        src={s.logo_url}
+                        alt={sTitle}
+                        width={64}
+                        height={64}
+                        className="block object-cover"
+                        unoptimized={true}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      IA
+                    </div>
+                  )}
+
+                  <div className="mt-3 text-sm font-medium text-slate-900 dark:text-slate-100 group-hover:underline">
+                    {sTitle}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
