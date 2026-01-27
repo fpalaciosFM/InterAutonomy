@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
 import { Navbar } from '@/components/Navbar';
 
@@ -48,6 +48,27 @@ const LEAD_BY_LANG: Record<string, string> = {
     '更高的自主可持续性意味着更强的自主性、更少依赖外部资金、知识或决策。它意味着更强的能力去判断并与其他倡议协商哪些对你的项目有利、哪些不利。它实现更公平的参与，从而构建更完整、更贴近所有人的发展模式。换句话说，更可持续。',
 };
 
+const UI_BY_LANG: Record<string, { back: string; notFoundTitle: string; notFoundLead: string; noContent: string }> = {
+  es: {
+    back: 'Volver a Estrategias',
+    notFoundTitle: 'Estrategia no encontrada',
+    notFoundLead: 'No existe una estrategia con el slug',
+    noContent: 'No hay contenido disponible para esta estrategia.',
+  },
+  en: {
+    back: 'Back to Strategies',
+    notFoundTitle: 'Strategy not found',
+    notFoundLead: 'There is no strategy with slug',
+    noContent: 'No content available for this strategy.',
+  },
+  zh: {
+    back: '返回策略列表',
+    notFoundTitle: '未找到该策略',
+    notFoundLead: '不存在该策略，slug 为',
+    noContent: '此策略暂无可用内容。',
+  },
+};
+
 function pickLang(searchParams: Record<string, string | string[] | undefined> | undefined): 'es' | 'en' | 'zh' {
   const raw = searchParams?.lang;
   const v = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : 'es';
@@ -65,9 +86,33 @@ export default async function StrategyDetailPage({
   const { slug } = await Promise.resolve(params);
   const sp = await Promise.resolve(searchParams);
   const lang = pickLang(sp);
+  const ui = UI_BY_LANG[lang] ?? UI_BY_LANG.es;
+
+  const backHref = `/strategies?lang=${encodeURIComponent(lang)}`;
 
   const strategy = await getStrategyBySlug(slug);
-  if (!strategy) return notFound();
+  if (!strategy) {
+    return (
+      <main className="min-h-screen bg-white dark:bg-[#0A0A0A] text-slate-900 dark:text-slate-100 transition-colors duration-500">
+        <Navbar />
+
+        <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <h1 className="text-2xl font-bold">{ui.notFoundTitle}</h1>
+          <p className="mt-3 text-slate-600 dark:text-slate-300">
+            {ui.notFoundLead} <span className="font-mono">{slug}</span>.
+          </p>
+          <div className="mt-6">
+            <Link
+              href={backHref}
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-900"
+            >
+              {ui.back}
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   const title =
     strategy.translations?.[lang]?.title ||
@@ -88,7 +133,7 @@ export default async function StrategyDetailPage({
 
       <header className="relative">
         <div
-          className="h-[60vh] sm:h-[55vh] md:h-[48vh] bg-center bg-cover flex items-center"
+          className="relative overflow-hidden min-h-[60vh] sm:min-h-[55vh] md:min-h-[48vh] bg-center bg-cover flex items-center py-10"
           style={heroUrl ? { backgroundImage: `url('${heroUrl}')` } : undefined}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/70" />
@@ -110,6 +155,15 @@ export default async function StrategyDetailPage({
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{title}</h1>
             <p className="mt-2 text-sm text-white/90">{SUBTITLE_BY_LANG[lang]}</p>
             <p className="mt-6 max-w-3xl mx-auto text-white/90 text-sm leading-relaxed">{LEAD_BY_LANG[lang]}</p>
+
+            <div className="mt-7">
+              <Link
+                href={backHref}
+                className="inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/40 px-5 py-2 text-sm font-medium backdrop-blur"
+              >
+                {ui.back}
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -118,7 +172,7 @@ export default async function StrategyDetailPage({
         {descriptionHtml ? (
           <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         ) : (
-          <p className="text-center text-slate-600 dark:text-slate-300">No hay contenido disponible para esta estrategia.</p>
+          <p className="text-center text-slate-600 dark:text-slate-300">{ui.noContent}</p>
         )}
       </article>
     </main>
