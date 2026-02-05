@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { Navbar } from '@/components/Navbar';
+import { sanitizeHtmlFragment } from '@/lib/sanitizeHtml';
 
 type StrategyRow = {
   id: string;
@@ -124,6 +125,8 @@ export default async function StrategyDetailPage({
     strategy.translations?.en?.description_html ||
     '';
 
+  const safeDescription = sanitizeHtmlFragment(descriptionHtml);
+
   const heroUrl = strategy.hero_image_url || '';
   const logoUrl = strategy.logo_url || '';
 
@@ -173,8 +176,8 @@ export default async function StrategyDetailPage({
       </header>
 
       <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 prose dark:prose-invert">
-        {descriptionHtml ? (
-          <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+        {safeDescription ? (
+          <div dangerouslySetInnerHTML={{ __html: safeDescription }} />
         ) : (
           <p className="text-center text-slate-600 dark:text-slate-300">{ui.noContent}</p>
         )}

@@ -83,6 +83,12 @@ export default async function AdminProjectsPage() {
                 <td className="px-4 py-3">{p.deleted_at ? 'yes' : 'no'}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/admin/projects/${encodeURIComponent(p.slug)}`}
+                      className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-900"
+                    >
+                      Edit
+                    </Link>
                     <form action={setProjectStatus}>
                       <input type="hidden" name="id" value={p.id} />
                       <input type="hidden" name="status" value={p.status === 'published' ? 'draft' : 'published'} />

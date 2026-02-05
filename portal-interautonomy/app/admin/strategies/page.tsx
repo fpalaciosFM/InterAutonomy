@@ -80,6 +80,12 @@ export default async function AdminStrategiesPage() {
                 <td className="px-4 py-3">{s.deleted_at ? 'yes' : 'no'}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/admin/strategies/${encodeURIComponent(s.slug)}`}
+                      className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-900"
+                    >
+                      Edit
+                    </Link>
                     <form action={setStrategyStatus}>
                       <input type="hidden" name="id" value={s.id} />
                       <input type="hidden" name="status" value={s.status === 'published' ? 'draft' : 'published'} />
