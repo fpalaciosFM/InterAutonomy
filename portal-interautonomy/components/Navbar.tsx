@@ -51,6 +51,7 @@ export const Navbar = () => {
             setIsDark(shouldBeDark);
             setMounted(true);
         });
+
         // Initialize language from URL (search param) or localStorage
         try {
             const urlLang = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('lang') : null;
@@ -116,7 +117,9 @@ export const Navbar = () => {
     // Build href preserving existing query params and setting lang
     const buildHref = (href: string) => {
         try {
-            const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+            // Important: do NOT read window.location.search during the initial client render.
+            // That causes server/client href mismatches during hydration.
+            const sp = mounted && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
             if (currentLanguage) sp.set('lang', currentLanguage);
             const q = sp.toString();
             return q ? `${href}?${q}` : href;

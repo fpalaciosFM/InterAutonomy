@@ -2,6 +2,34 @@ import Link from 'next/link';
 
 import { requireAdmin } from '@/lib/admin';
 import { createProject, restoreProject, setProjectStatus, softDeleteProject } from '../actions';
+import AdminProjectsTableNoSSR from '@/components/admin/AdminProjectsTableNoSSR';
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function readSearchParam(sp: SearchParams, key: string): string | null {
+  const v = sp[key];
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v[0] ?? null;
+  return null;
+}
+
+type StatusFilter = 'all' | 'draft' | 'published';
+type DeletedFilter = 'active' | 'archived' | 'all';
+type SortKey = 'updated_desc' | 'updated_asc' | 'slug_asc' | 'slug_desc' | 'published_desc';
+
+function asStatusFilter(v: string | null): StatusFilter {
+  return v === 'draft' || v === 'published' || v === 'all' ? v : 'all';
+}
+
+function asDeletedFilter(v: string | null): DeletedFilter {
+  return v === 'active' || v === 'archived' || v === 'all' ? v : 'active';
+}
+
+function asSortKey(v: string | null): SortKey {
+  return v === 'updated_desc' || v === 'updated_asc' || v === 'slug_asc' || v === 'slug_desc' || v === 'published_desc'
+    ? v
+    : 'updated_desc';
+}
 
 type ProjectRow = {
   id: string;
@@ -12,13 +40,50 @@ type ProjectRow = {
   published_at: string | null;
 };
 
-export default async function AdminProjectsPage() {
+export default async function AdminProjectsPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams | Promise<SearchParams>;
+}) {
+  const sp = await Promise.resolve(searchParams ?? {});
+
+  const q = (readSearchParam(sp, 'q') ?? '').trim();
+  const statusFilter = asStatusFilter(readSearchParam(sp, 'status'));
+  const deletedFilter = asDeletedFilter(readSearchParam(sp, 'deleted'));
+  const sortKey = asSortKey(readSearchParam(sp, 'sort'));
+
   const { supabase } = await requireAdmin();
 
-  const { data, error } = await supabase
-    .from('projects')
-    .select('id, slug, status, deleted_at, updated_at, published_at')
-    .order('updated_at', { ascending: false });
+  let query = supabase.from('projects').select('id, slug, status, deleted_at, updated_at, published_at');
+
+  if (q) query = query.ilike('slug', `%${q}%`);
+  if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+  if (deletedFilter === 'active') query = query.is('deleted_at', null);
+  if (deletedFilter === 'archived') query = query.not('deleted_at', 'is', null);
+
+  switch (sortKey) {
+    case 'updated_asc':
+      query = query.order('updated_at', { ascending: true }).order('id', { ascending: true });
+      break;
+    case 'slug_asc':
+      query = query.order('slug', { ascending: true }).order('id', { ascending: true });
+      break;
+    case 'slug_desc':
+      query = query.order('slug', { ascending: false }).order('id', { ascending: true });
+      break;
+    case 'published_desc':
+      query = query
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: true });
+      break;
+    case 'updated_desc':
+    default:
+      query = query.order('updated_at', { ascending: false }).order('id', { ascending: true });
+      break;
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return (
@@ -46,6 +111,74 @@ export default async function AdminProjectsPage() {
       </div>
 
       <div className="mt-8 rounded-lg border border-slate-200 dark:border-slate-800 p-5">
+        <h2 className="font-semibold">Filter & sort</h2>
+        <form method="GET" className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          <label className="block">
+            <span className="block text-sm font-medium">Search (slug)</span>
+            <input
+              name="q"
+              defaultValue={q}
+              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+              placeholder="e.g. autonomy"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-sm font-medium">Status</span>
+            <select
+              name="status"
+              defaultValue={statusFilter}
+              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="block text-sm font-medium">Deleted</span>
+            <select
+              name="deleted"
+              defaultValue={deletedFilter}
+              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+            >
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="block text-sm font-medium">Sort</span>
+            <select
+              name="sort"
+              defaultValue={sortKey}
+              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+            >
+              <option value="updated_desc">Updated (newest)</option>
+              <option value="updated_asc">Updated (oldest)</option>
+              <option value="published_desc">Published date (newest)</option>
+              <option value="slug_asc">Slug (A→Z)</option>
+              <option value="slug_desc">Slug (Z→A)</option>
+            </select>
+          </label>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-800"
+            >
+              Apply
+            </button>
+            <Link href="/admin/projects" className="text-sm hover:underline">
+              Reset
+            </Link>
+          </div>
+        </form>
+      </div>
+
+      <div className="mt-8 rounded-lg border border-slate-200 dark:border-slate-800 p-5">
         <h2 className="font-semibold">Create new</h2>
         <form action={createProject} className="mt-4 flex flex-col sm:flex-row gap-3">
           <input
@@ -65,69 +198,12 @@ export default async function AdminProjectsPage() {
         </p>
       </div>
 
-      <div className="mt-8 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-900">
-            <tr>
-              <th className="text-left font-medium px-4 py-3">Slug</th>
-              <th className="text-left font-medium px-4 py-3">Status</th>
-              <th className="text-left font-medium px-4 py-3">Deleted</th>
-              <th className="text-left font-medium px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((p) => (
-              <tr key={p.id} className="border-t border-slate-200 dark:border-slate-800">
-                <td className="px-4 py-3 font-mono">{p.slug}</td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3">{p.deleted_at ? 'yes' : 'no'}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/admin/projects/${encodeURIComponent(p.slug)}`}
-                      className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-900"
-                    >
-                      Edit
-                    </Link>
-                    <form action={setProjectStatus}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <input type="hidden" name="status" value={p.status === 'published' ? 'draft' : 'published'} />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-900"
-                      >
-                        {p.status === 'published' ? 'Unpublish' : 'Publish'}
-                      </button>
-                    </form>
-
-                    {!p.deleted_at ? (
-                      <form action={softDeleteProject}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-red-300 text-red-700 dark:border-red-900/60 dark:text-red-300 px-3 py-1.5 text-xs hover:bg-red-50/40 dark:hover:bg-red-950/30"
-                        >
-                          Archive
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={restoreProject}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-900"
-                        >
-                          Restore
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AdminProjectsTableNoSSR
+        projects={projects}
+        setProjectStatus={setProjectStatus}
+        softDeleteProject={softDeleteProject}
+        restoreProject={restoreProject}
+      />
     </section>
   );
 }

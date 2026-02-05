@@ -103,48 +103,47 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
   const showMore = previewText.length > 140;
 
   return (
-    <Link href={href} className="block">
-      <article
-        className={`group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900 transition-transform ${open ? '' : 'hover:-translate-y-0.5'}`}
-      >
+    <article
+      className={`group rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-900 transition-transform ${open ? '' : 'hover:-translate-y-0.5'}`}
+    >
+      <Link href={href} className="block">
         <div className="relative h-56 bg-slate-200 dark:bg-slate-800">
-        {imgSrc ? (
-          <Image
-            src={imgSrc}
-            alt={title}
-            fill
-            className="object-cover"
-            unoptimized={true}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800" />
-        )}
+          {imgSrc ? (
+            <Image
+              src={imgSrc}
+              alt={title}
+              fill
+              className="object-cover"
+              unoptimized={true}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800" />
+          )}
         </div>
 
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+        <div className="p-5">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
 
-        {previewText ? (
-          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300 line-clamp-3">{previewText}</p>
-        ) : null}
+          {previewText ? (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300 line-clamp-3">{previewText}</p>
+          ) : null}
+        </div>
+      </Link>
 
-        {showMore ? (
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSanitizedHtml('');
-                setOpen(true);
-              }}
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              {ui.more}
-            </button>
-          </div>
-        ) : null}
-      </div>
+      {showMore ? (
+        <div className="px-5 pb-5">
+          <button
+            type="button"
+            onClick={() => {
+              setSanitizedHtml('');
+              setOpen(true);
+            }}
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            {ui.more}
+          </button>
+        </div>
+      ) : null}
 
       {open && typeof document !== 'undefined'
         ? createPortal(
@@ -194,7 +193,6 @@ export default function ProjectCard({ project, lang = 'en' }: { project: Project
             document.body
           )
         : null}
-      </article>
-    </Link>
+    </article>
   );
 }
