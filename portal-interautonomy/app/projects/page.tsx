@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Hero } from '../../components/Hero';
 import { Navbar } from '@/components/Navbar';
 import ProjectsGridNoSSR from '@/components/public/ProjectsGridNoSSR';
+import StrategyCheckboxDropdown from '@/components/public/StrategyCheckboxDropdown';
 
 type ProjectRow = {
   id: string;
@@ -13,21 +14,31 @@ type ProjectRow = {
   translations: Record<string, { title?: string; short_description?: string }> | null;
 };
 
-async function getProjects(): Promise<ProjectRow[]> {
+type StrategyOption = {
+  id: string;
+  slug: string;
+  translations: Record<string, { title?: string }> | null;
+};
+
+type ParagraphStrategyWithProjectRow = {
+  strategy_id: string;
+  project_paragraphs: { project_id: string | null } | Array<{ project_id: string | null }> | null;
+};
+
+function getSupabaseAnon() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+  return createClient(supabaseUrl, supabaseKey);
+}
 
-  if (!supabaseUrl) {
-    console.warn('Missing NEXT_PUBLIC_SUPABASE_URL — skipping Supabase fetch.');
+async function getProjects(): Promise<ProjectRow[]> {
+  const supabase = getSupabaseAnon();
+  if (!supabase) {
+    console.warn('Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY — skipping Supabase fetch.');
     return [];
   }
 
-  if (!supabaseKey) {
-    console.warn('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-    return [];
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const { data, error } = await supabase
     .from('projects')
     .select('id, slug, thumbnail_url, published_at, updated_at, translations')
@@ -44,6 +55,114 @@ async function getProjects(): Promise<ProjectRow[]> {
   return (data as ProjectRow[]) || [];
 }
 
+async function getPublishedStrategies(): Promise<StrategyOption[]> {
+  const supabase = getSupabaseAnon();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('strategies')
+    .select('id, slug, translations')
+    .order('slug', { ascending: true });
+
+  if (error) {
+    console.error('Supabase fetch error (strategies for filter):', error);
+    return [];
+  }
+
+  return (data as StrategyOption[]) || [];
+}
+
+async function resolveStrategyIdsBySlug(slugs: string[]): Promise<{ ids: string[]; bySlug: Map<string, string> }> {
+  const uniqSlugs = Array.from(new Set(slugs.map((s) => s.trim()).filter(Boolean)));
+  if (uniqSlugs.length === 0) return { ids: [], bySlug: new Map() };
+
+  const supabase = getSupabaseAnon();
+  if (!supabase) return { ids: [], bySlug: new Map() };
+
+  const { data, error } = await supabase.from('strategies').select('id, slug').in('slug', uniqSlugs);
+  if (error) {
+    console.error('Supabase fetch error (resolve strategies):', error);
+    return { ids: [], bySlug: new Map() };
+  }
+
+  const bySlug = new Map<string, string>();
+  const ids: string[] = [];
+  for (const row of (data as Array<{ id: string; slug: string }>) || []) {
+    bySlug.set(row.slug, row.id);
+    ids.push(row.id);
+  }
+  return { ids, bySlug };
+}
+
+async function getProjectIdsForStrategyIds(strategyIds: string[]): Promise<Set<string>> {
+  if (strategyIds.length === 0) return new Set();
+  const supabase = getSupabaseAnon();
+  if (!supabase) return new Set();
+
+  const projectIds = new Set<string>();
+
+  const { data, error } = await supabase
+    .from('paragraph_strategies')
+    .select('strategy_id, project_paragraphs ( project_id )')
+    .in('strategy_id', strategyIds);
+
+  if (error) {
+    console.error('Supabase fetch error (paragraph_strategies for filter):', error);
+    return projectIds;
+  }
+
+  for (const row of (data as ParagraphStrategyWithProjectRow[]) || []) {
+    const pp = row.project_paragraphs;
+    const projectId = Array.isArray(pp) ? (pp[0]?.project_id ?? null) : (pp?.project_id ?? null);
+    if (projectId) projectIds.add(projectId);
+  }
+
+  return projectIds;
+}
+
+async function getProjectIdsContainingAllStrategies(strategyIds: string[]): Promise<Set<string>> {
+  const uniqIds = Array.from(new Set(strategyIds.filter(Boolean)));
+  if (uniqIds.length === 0) return new Set();
+
+  const supabase = getSupabaseAnon();
+  if (!supabase) return new Set();
+
+  const perProject = new Map<string, Set<string>>();
+
+  const { data, error } = await supabase
+    .from('paragraph_strategies')
+    .select('strategy_id, project_paragraphs ( project_id )')
+    .in('strategy_id', uniqIds);
+
+  if (error) {
+    console.error('Supabase fetch error (paragraph_strategies for all filter):', error);
+    return new Set();
+  }
+
+  for (const row of (data as ParagraphStrategyWithProjectRow[]) || []) {
+    const pp = row.project_paragraphs;
+    const projectId = Array.isArray(pp) ? (pp[0]?.project_id ?? null) : (pp?.project_id ?? null);
+    if (!projectId) continue;
+    const set = perProject.get(projectId) ?? new Set<string>();
+    set.add(row.strategy_id);
+    perProject.set(projectId, set);
+  }
+
+  const ok = new Set<string>();
+  for (const [projectId, set] of perProject) {
+    let hasAll = true;
+    for (const requiredId of uniqIds) {
+      if (!set.has(requiredId)) {
+        hasAll = false;
+        break;
+      }
+    }
+    if (hasAll) ok.add(projectId);
+  }
+
+  return ok;
+}
+
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function readSearchParam(sp: SearchParams | undefined, key: string): string | null {
@@ -51,6 +170,13 @@ function readSearchParam(sp: SearchParams | undefined, key: string): string | nu
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0] ?? null;
   return null;
+}
+
+function readSearchParamValues(sp: SearchParams | undefined, key: string): string[] {
+  const v = sp?.[key];
+  if (typeof v === 'string') return v ? [v] : [];
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && Boolean(x));
+  return [];
 }
 
 type SortKey = 'published_desc' | 'updated_desc' | 'updated_asc' | 'slug_asc' | 'slug_desc' | 'title_asc' | 'title_desc';
@@ -91,7 +217,15 @@ const UI_BY_LANG: Record<string, { heroTitle: string; pageTitle: string; pageDes
 
 const FILTER_UI: Record<
   string,
-  { filterTitle: string; searchLabel: string; sortLabel: string; apply: string; reset: string; searchPlaceholder: string }
+  {
+    filterTitle: string;
+    searchLabel: string;
+    sortLabel: string;
+    apply: string;
+    reset: string;
+    searchPlaceholder: string;
+    showing: (n: number) => string;
+  }
 > = {
   es: {
     filterTitle: 'Buscar y ordenar',
@@ -100,6 +234,7 @@ const FILTER_UI: Record<
     apply: 'Aplicar',
     reset: 'Restablecer',
     searchPlaceholder: 'Busca por título o slug',
+    showing: (n) => `Mostrando ${n} proyecto${n === 1 ? '' : 's'}`,
   },
   en: {
     filterTitle: 'Search & sort',
@@ -108,6 +243,7 @@ const FILTER_UI: Record<
     apply: 'Apply',
     reset: 'Reset',
     searchPlaceholder: 'Search by title or slug',
+    showing: (n) => `Showing ${n} project${n === 1 ? '' : 's'}`,
   },
   zh: {
     filterTitle: '搜索与排序',
@@ -116,6 +252,7 @@ const FILTER_UI: Record<
     apply: '应用',
     reset: '重置',
     searchPlaceholder: '按标题或 slug 搜索',
+    showing: (n) => `显示 ${n} 个项目`,
   },
 };
 
@@ -133,15 +270,34 @@ export default async function ProjectsPage({
   const q = (readSearchParam(spObj, 'q') ?? '').trim();
   const sortKey = asSortKey(readSearchParam(spObj, 'sort'));
 
+  const anyStrategySlugs = readSearchParamValues(spObj, 'any_strategies');
+  const allStrategySlugs = readSearchParamValues(spObj, 'all_strategies');
+
+  const [strategies, anyResolved, allResolved] = await Promise.all([
+    getPublishedStrategies(),
+    resolveStrategyIdsBySlug(anyStrategySlugs),
+    resolveStrategyIdsBySlug(allStrategySlugs),
+  ]);
+
+  const [anyProjectIds, allProjectIds] = await Promise.all([
+    anyResolved.ids.length ? getProjectIdsForStrategyIds(anyResolved.ids) : Promise.resolve<Set<string> | null>(null),
+    allResolved.ids.length ? getProjectIdsContainingAllStrategies(allResolved.ids) : Promise.resolve<Set<string> | null>(null),
+  ]);
+
   const projectsRaw = await getProjects();
 
   const qLower = q.toLowerCase();
-  const projectsFiltered = q
-    ? projectsRaw.filter((p) => {
-        const title = projectTitle(p, lang).toLowerCase();
-        return p.slug.toLowerCase().includes(qLower) || title.includes(qLower);
-      })
-    : projectsRaw;
+  const projectsFiltered = projectsRaw.filter((p) => {
+    if (q) {
+      const title = projectTitle(p, lang).toLowerCase();
+      if (!p.slug.toLowerCase().includes(qLower) && !title.includes(qLower)) return false;
+    }
+
+    if (anyProjectIds && !anyProjectIds.has(p.id)) return false;
+    if (allProjectIds && !allProjectIds.has(p.id)) return false;
+
+    return true;
+  });
 
   const projects = [...projectsFiltered].sort((a, b) => {
     const tie = () => {
@@ -194,10 +350,13 @@ export default async function ProjectsPage({
         </header>
 
         <div className="mb-8 rounded-lg border border-slate-200 dark:border-slate-800 p-5">
-          <h2 className="font-semibold">{filterUi.filterTitle}</h2>
-          <form method="GET" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="font-semibold">{filterUi.filterTitle}</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{filterUi.showing(projects.length)}</p>
+          </div>
+          <form method="GET" className="mt-4 grid grid-cols-1 lg:grid-cols-6 gap-3 items-end">
             <input type="hidden" name="lang" value={lang} />
-            <label className="block sm:col-span-2">
+            <label className="block lg:col-span-2">
               <span className="block text-sm font-medium">{filterUi.searchLabel}</span>
               <input
                 name="q"
@@ -206,6 +365,39 @@ export default async function ProjectsPage({
                 placeholder={filterUi.searchPlaceholder}
               />
             </label>
+
+            {(() => {
+              const opts = strategies
+                .slice()
+                .sort((a, b) => {
+                  const at = a.translations?.[lang]?.title || a.translations?.en?.title || a.slug;
+                  const bt = b.translations?.[lang]?.title || b.translations?.en?.title || b.slug;
+                  return at.localeCompare(bt) || a.slug.localeCompare(b.slug);
+                })
+                .map((s) => ({
+                  slug: s.slug,
+                  label: s.translations?.[lang]?.title || s.translations?.en?.title || s.slug,
+                }));
+
+              return (
+                <>
+                  <StrategyCheckboxDropdown
+                    name="any_strategies"
+                    label={lang === 'es' ? 'Estrategias (cualquiera)' : lang === 'zh' ? '策略（任意）' : 'Strategies (any)'}
+                    placeholder={lang === 'es' ? 'Selecciona…' : lang === 'zh' ? '选择…' : 'Select…'}
+                    options={opts}
+                    defaultSelected={anyStrategySlugs}
+                  />
+                  <StrategyCheckboxDropdown
+                    name="all_strategies"
+                    label={lang === 'es' ? 'Estrategias (todas)' : lang === 'zh' ? '策略（全部）' : 'Strategies (all)'}
+                    placeholder={lang === 'es' ? 'Selecciona…' : lang === 'zh' ? '选择…' : 'Select…'}
+                    options={opts}
+                    defaultSelected={allStrategySlugs}
+                  />
+                </>
+              );
+            })()}
 
             <label className="block">
               <span className="block text-sm font-medium">{filterUi.sortLabel}</span>
@@ -224,7 +416,7 @@ export default async function ProjectsPage({
               </select>
             </label>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 lg:justify-end">
               <button
                 type="submit"
                 className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-800"
