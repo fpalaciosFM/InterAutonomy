@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { requireAdmin } from '@/lib/admin';
 import { sanitizeHtmlFragment } from '@/lib/sanitizeHtml';
@@ -131,6 +132,8 @@ export async function updateProject(formData: FormData) {
   revalidatePath('/admin/projects');
   if (existingSlug) revalidatePath(`/admin/projects/${existingSlug}`);
   revalidatePath('/projects');
+
+  redirect(existingSlug ? `/admin/projects/${existingSlug}?saved=1` : '/admin/projects?saved=1');
 }
 
 export async function setProjectStatus(formData: FormData) {
@@ -232,6 +235,8 @@ export async function updateStrategy(formData: FormData) {
   revalidatePath('/admin/strategies');
   if (existingSlug) revalidatePath(`/admin/strategies/${existingSlug}`);
   revalidatePath('/strategies');
+
+  redirect(existingSlug ? `/admin/strategies/${existingSlug}?saved=1` : '/admin/strategies?saved=1');
 }
 
 export async function setStrategyStatus(formData: FormData) {

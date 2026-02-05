@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import StorageImageUploadInput from '@/components/admin/StorageImageUploadInput';
+import StatusNotice from '@/components/admin/StatusNotice';
 import { requireAdmin } from '@/lib/admin';
 import { updateStrategy } from '../../actions';
 
@@ -15,8 +17,24 @@ type StrategyRow = {
 
 const LANGS: Array<'es' | 'en' | 'zh'> = ['es', 'en', 'zh'];
 
-export default async function AdminStrategyEditPage({ params }: { params: { slug: string } | Promise<{ slug: string }> }) {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function readSearchParam(sp: SearchParams, key: string): string | null {
+  const v = sp[key];
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v[0] ?? null;
+  return null;
+}
+
+export default async function AdminStrategyEditPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string } | Promise<{ slug: string }>;
+  searchParams?: SearchParams | Promise<SearchParams>;
+}) {
   const { slug } = await Promise.resolve(params);
+  const sp = await Promise.resolve(searchParams ?? {});
   const { supabase } = await requireAdmin();
 
   const { data, error } = await supabase
@@ -49,6 +67,8 @@ export default async function AdminStrategyEditPage({ params }: { params: { slug
     );
   }
 
+  const saved = readSearchParam(sp, 'saved') === '1';
+
   return (
     <section>
       <div className="flex items-start justify-between gap-6">
@@ -73,30 +93,29 @@ export default async function AdminStrategyEditPage({ params }: { params: { slug
       </div>
 
       <form action={updateStrategy} className="mt-8 space-y-8">
+        {saved ? (
+          <StatusNotice variant="success">Cambios guardados correctamente.</StatusNotice>
+        ) : null}
         <input type="hidden" name="id" value={strategy.id} />
 
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-5 space-y-4">
           <h2 className="font-semibold">Media</h2>
 
-          <label className="block">
-            <span className="block text-sm font-medium">Logo URL</span>
-            <input
-              name="logo_url"
-              defaultValue={strategy.logo_url ?? ''}
-              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-              placeholder="https://..."
-            />
-          </label>
+          <StorageImageUploadInput
+            label="Logo URL"
+            name="logo_url"
+            defaultValue={strategy.logo_url ?? ''}
+            prefix={`strategies/${strategy.slug}/logo`}
+            placeholder="https://..."
+          />
 
-          <label className="block">
-            <span className="block text-sm font-medium">Hero image URL</span>
-            <input
-              name="hero_image_url"
-              defaultValue={strategy.hero_image_url ?? ''}
-              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-              placeholder="https://..."
-            />
-          </label>
+          <StorageImageUploadInput
+            label="Hero image URL"
+            name="hero_image_url"
+            defaultValue={strategy.hero_image_url ?? ''}
+            prefix={`strategies/${strategy.slug}/hero`}
+            placeholder="https://..."
+          />
         </div>
 
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-5">

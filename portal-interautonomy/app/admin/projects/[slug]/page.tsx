@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import StorageImageUploadInput from '@/components/admin/StorageImageUploadInput';
+import SavedChangesNotice from '@/components/admin/SavedChangesNotice';
 import { requireAdmin } from '@/lib/admin';
 import { updateProject } from '../../actions';
 
@@ -27,8 +29,24 @@ type ProjectRow = {
 
 const LANGS: Array<'es' | 'en' | 'zh'> = ['es', 'en', 'zh'];
 
-export default async function AdminProjectEditPage({ params }: { params: { slug: string } | Promise<{ slug: string }> }) {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function readSearchParam(sp: SearchParams, key: string): string | null {
+  const v = sp[key];
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v[0] ?? null;
+  return null;
+}
+
+export default async function AdminProjectEditPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string } | Promise<{ slug: string }>;
+  searchParams?: SearchParams | Promise<SearchParams>;
+}) {
   const { slug } = await Promise.resolve(params);
+  const sp = await Promise.resolve(searchParams ?? {});
   const { supabase } = await requireAdmin();
 
   const { data, error } = await supabase
@@ -62,6 +80,7 @@ export default async function AdminProjectEditPage({ params }: { params: { slug:
   }
 
   const galleryText = Array.isArray(project.gallery_urls) ? project.gallery_urls.join('\n') : '';
+  const saved = readSearchParam(sp, 'saved') === '1';
 
   return (
     <section>
@@ -87,20 +106,21 @@ export default async function AdminProjectEditPage({ params }: { params: { slug:
       </div>
 
       <form action={updateProject} className="mt-8 space-y-8">
+        {saved ? (
+          <SavedChangesNotice />
+        ) : null}
         <input type="hidden" name="id" value={project.id} />
 
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-5 space-y-4">
           <h2 className="font-semibold">Media & links</h2>
 
-          <label className="block">
-            <span className="block text-sm font-medium">Thumbnail URL</span>
-            <input
-              name="thumbnail_url"
-              defaultValue={project.thumbnail_url ?? ''}
-              className="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-              placeholder="https://..."
-            />
-          </label>
+          <StorageImageUploadInput
+            label="Thumbnail URL"
+            name="thumbnail_url"
+            defaultValue={project.thumbnail_url ?? ''}
+            prefix={`projects/${project.slug}/thumbnail`}
+            placeholder="https://..."
+          />
 
           <label className="block">
             <span className="block text-sm font-medium">External link URL</span>
