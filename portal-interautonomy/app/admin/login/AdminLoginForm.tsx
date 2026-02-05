@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
@@ -9,9 +9,17 @@ export default function AdminLoginForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState<string>('');
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const t = window.setInterval(() => setCooldownSeconds((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [cooldownSeconds]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     setStatus('loading');
     setMessage('');
 
@@ -27,12 +35,20 @@ export default function AdminLoginForm() {
 
     if (error) {
       setStatus('error');
-      setMessage(error.message);
+      const msg = error.message || 'Login failed.';
+      const isRateLimit = /rate limit/i.test(msg);
+      setMessage(
+        isRateLimit
+          ? 'Rate limit exceeded. Please wait a bit before requesting another email (or use a freshly generated link from the Supabase dashboard).'
+          : msg
+      );
+      if (isRateLimit) setCooldownSeconds(60);
       return;
     }
 
     setStatus('sent');
     setMessage('Check your email for the sign-in link.');
+    setCooldownSeconds(60);
   }
 
   return (
@@ -52,10 +68,14 @@ export default function AdminLoginForm() {
 
       <button
         type="submit"
-        disabled={status === 'loading'}
+        disabled={status === 'loading' || cooldownSeconds > 0}
         className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60"
       >
-        {status === 'loading' ? 'Sending…' : 'Send magic link'}
+        {status === 'loading'
+          ? 'Sending…'
+          : cooldownSeconds > 0
+            ? `Wait ${cooldownSeconds}s`
+            : 'Send magic link'}
       </button>
 
       {message ? (
