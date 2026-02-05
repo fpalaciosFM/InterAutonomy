@@ -15,6 +15,7 @@ declare module 'sanitize-html' {
   export interface IOptions {
     allowedTags?: string[];
     allowedAttributes?: Record<string, string[]>;
+    allowedStyles?: Record<string, Record<string, Array<RegExp | string>>>;
     allowedSchemes?: string[];
     allowedSchemesAppliedToAttributes?: string[];
     transformTags?: Record<string, TransformTagFn>;

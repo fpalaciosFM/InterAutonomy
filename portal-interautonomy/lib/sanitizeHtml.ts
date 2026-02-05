@@ -1,6 +1,10 @@
 import sanitizeHtml, { type IOptions } from 'sanitize-html';
 
-const DEFAULT_OPTIONS: IOptions = {
+type IOptionsWithAllowedStyles = IOptions & {
+  allowedStyles?: Record<string, Record<string, Array<RegExp | string>>>;
+};
+
+const DEFAULT_OPTIONS: IOptionsWithAllowedStyles = {
   allowedTags: [
     'p',
     'br',
@@ -24,6 +28,15 @@ const DEFAULT_OPTIONS: IOptions = {
   allowedAttributes: {
     a: ['href', 'target', 'rel'],
     span: ['style'],
+  },
+  allowedStyles: {
+    span: {
+      color: [
+        /^#[0-9a-f]{3}([0-9a-f]{3})?$/i,
+        /^rgb\(\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*\)$/i,
+        /^rgba\(\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:0|1|0?\.\d+)\s*\)$/i,
+      ],
+    },
   },
   allowedSchemes: ['http', 'https', 'mailto', 'tel'],
   // Keep it strict: no inline JS URLs, no iframes, no scripts.
