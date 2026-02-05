@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     try {
       const supabase = await createSupabaseServerClient();
       await supabase.auth.exchangeCodeForSession(code);
-    } catch (e) {
+    } catch {
       // If exchange fails, send user to login.
       const loginUrl = new URL('/admin/login', requestUrl.origin);
       return NextResponse.redirect(loginUrl);
